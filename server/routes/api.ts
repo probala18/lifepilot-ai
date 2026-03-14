@@ -1,55 +1,69 @@
 import express from 'express';
-import { GoogleGenAI, Type } from '@google/genai';
+import { handleAssistantRequest } from '../agents/personalAssistantAgent.js';
+import { handleShoppingRequest } from '../agents/shoppingDecisionAgent.js';
+import { handleHealthRequest } from '../agents/symptomAnalyzerAgent.js';
+import { getTasksByUser, completeTask, deleteTask } from '../db/taskRepository.js';
 
 const router = express.Router();
 
-let aiClient: GoogleGenAI | null = null;
+type AgentName = 'assistant' | 'shopping' | 'health';
 
-function getAi(): GoogleGenAI {
-  if (!aiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error('GEMINI_API_KEY environment variable is required');
-    }
-    aiClient = new GoogleGenAI({ apiKey: key });
+const agentHandlers: Record<Exclude<AgentName, 'assistant'>, (msg: string) => Promise<{ data: unknown; reasoning: string }>> = {
+  shopping: handleShoppingRequest,
+  health: handleHealthRequest,
+};
+
+const VALID_AGENTS: AgentName[] = ['assistant', 'shopping', 'health'];
+
+// Unified agent endpoint
+router.post('/agent', async (req: any, res) => {
+  const { agent, message } = req.body as { agent?: string; message?: string };
+
+  if (!agent || !message) {
+    return res.status(400).json({ success: false, error: 'Both "agent" and "message" fields are required' });
   }
-  return aiClient;
-}
 
-// 1. Agentic Personal Assistant
-router.post('/assistant', async (req, res) => {
+  if (!VALID_AGENTS.includes(agent as AgentName)) {
+    return res.status(400).json({ success: false, error: `Invalid agent: ${agent}. Must be one of: assistant, shopping, health` });
+  }
+
   try {
-    const ai = getAi();
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+    let data: unknown;
+    let reasoning: string;
+
+    if (agent === 'assistant') {
+      const user = req.user as { sub: string; email: string };
+      ({ data, reasoning } = await handleAssistantRequest(message, user.sub, user.email));
+    } else {
+      const handler = agentHandlers[agent as Exclude<AgentName, 'assistant'>];
+      ({ data, reasoning } = await handler(message));
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: message,
-      config: {
-        systemInstruction: `You are an Agentic AI Personal Assistant. Extract the task, time, and suggest an action from the user's request.
-Respond ONLY in JSON format matching this schema:
-{
-  "task": "string",
-  "time": "string (e.g., 'Tomorrow at 10 AM', '6 PM', or 'Not specified')",
-  "suggestedAction": "string"
-}`,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            task: { type: Type.STRING },
-            time: { type: Type.STRING },
-            suggestedAction: { type: Type.STRING },
-          },
-          required: ['task', 'time', 'suggestedAction'],
-        },
-      },
+    res.json({
+      success: true,
+      agent,
+      response: data,
+      reasoning,
+      timestamp: new Date().toISOString(),
     });
+  } catch (error) {
+    console.error(`Agent [${agent}] Error:`, error);
+    res.status(500).json({
+      success: false,
+      agent,
+      error: 'Failed to process request. Please try again.',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
-    const data = JSON.parse(response.text || '{}');
+// Backward-compatible aliases — delegate to the same agent handlers
+router.post('/assistant', async (req: any, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+  try {
+    const user = req.user as { sub: string; email: string };
+    const { data } = await handleAssistantRequest(message, user.sub, user.email);
     res.json(data);
   } catch (error) {
     console.error('Assistant Error:', error);
@@ -57,41 +71,11 @@ Respond ONLY in JSON format matching this schema:
   }
 });
 
-// 2. AI Shopping Decision Assistant
 router.post('/shopping', async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message is required' });
   try {
-    const ai = getAi();
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: message,
-      config: {
-        systemInstruction: `You are an AI Shopping Decision Assistant. Analyze the user's query about a product.
-Consider price, reviews, and alternatives.
-Respond ONLY in JSON format matching this schema:
-{
-  "recommendation": "string (e.g., 'Buy', 'Wait', 'Don't Buy')",
-  "reason": "string (detailed reason based on price, reviews, etc.)",
-  "betterAlternative": "string (or 'None' if it's the best choice)"
-}`,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            recommendation: { type: Type.STRING },
-            reason: { type: Type.STRING },
-            betterAlternative: { type: Type.STRING },
-          },
-          required: ['recommendation', 'reason', 'betterAlternative'],
-        },
-      },
-    });
-
-    const data = JSON.parse(response.text || '{}');
+    const { data } = await handleShoppingRequest(message);
     res.json(data);
   } catch (error) {
     console.error('Shopping Error:', error);
@@ -99,48 +83,57 @@ Respond ONLY in JSON format matching this schema:
   }
 });
 
-// 3. AI Health Symptom Analyzer
 router.post('/health', async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message is required' });
   try {
-    const ai = getAi();
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: message,
-      config: {
-        systemInstruction: `You are an AI Health Symptom Analyzer. Analyze the user's symptoms.
-Respond ONLY in JSON format matching this schema:
-{
-  "possibleCondition": "string",
-  "advice": "string",
-  "whenToConsultDoctor": "string",
-  "disclaimer": "string (MUST be exactly: 'This is not medical advice.')"
-}`,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            possibleCondition: { type: Type.STRING },
-            advice: { type: Type.STRING },
-            whenToConsultDoctor: { type: Type.STRING },
-            disclaimer: { type: Type.STRING },
-          },
-          required: ['possibleCondition', 'advice', 'whenToConsultDoctor', 'disclaimer'],
-        },
-      },
-    });
-
-    const data = JSON.parse(response.text || '{}');
-    // Ensure disclaimer is present
-    data.disclaimer = 'This is not medical advice.';
+    const { data } = await handleHealthRequest(message);
     res.json(data);
   } catch (error) {
     console.error('Health Error:', error);
     res.status(500).json({ error: 'Failed to process health request' });
+  }
+});
+
+// ─── Task management endpoints ───────────────────────────────────────────────
+
+router.get('/tasks', (req: any, res) => {
+  try {
+    const tasks = getTasksByUser(req.user.sub);
+    res.json({ success: true, tasks });
+  } catch (error) {
+    console.error('Tasks Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch tasks' });
+  }
+});
+
+router.patch('/tasks/:id/complete', (req: any, res) => {
+  const taskId = Number(req.params.id);
+  if (!Number.isInteger(taskId)) {
+    return res.status(400).json({ success: false, error: 'Invalid task ID' });
+  }
+  try {
+    const updated = completeTask(taskId, req.user.sub);
+    if (!updated) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Complete Task Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to complete task' });
+  }
+});
+
+router.delete('/tasks/:id', (req: any, res) => {
+  const taskId = Number(req.params.id);
+  if (!Number.isInteger(taskId)) {
+    return res.status(400).json({ success: false, error: 'Invalid task ID' });
+  }
+  try {
+    const deleted = deleteTask(taskId, req.user.sub);
+    if (!deleted) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete Task Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete task' });
   }
 });
 

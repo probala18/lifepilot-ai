@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Send, Bot, ShoppingCart, Stethoscope, CalendarCheck, Info, Sparkles,
   ArrowRight, Play, MessageSquare, Zap, Shield, Clock, ChevronDown, ChevronUp,
-  CheckCircle, MousePointerClick, Globe, Cpu
+  CheckCircle, MousePointerClick, Globe, Cpu, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useInView } from 'motion/react';
 
@@ -72,6 +72,103 @@ function Typewriter({ texts, className }: { texts: string[]; className?: string 
   return <span className={className}>{currentText}<span className="animate-pulse">|</span></span>;
 }
 
+/* ── Auth types ── */
+interface AuthUser {
+  sub: string;
+  email: string;
+  name: string;
+  picture: string;
+}
+
+/* ── Google Sign-In modal ── */
+function GoogleAuthModal({ onSuccess, onClose }: { onSuccess: (u: AuthUser) => void; onClose: () => void }) {
+  const btnRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef(onSuccess);
+  successRef.current = onSuccess;
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
+  useEffect(() => {
+    if (!clientId) return;
+
+    const handleCredential = async (response: { credential: string }) => {
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+        if (!res.ok) return;
+        const { user } = await res.json();
+        successRef.current(user);
+      } catch {
+        // user can retry
+      }
+    };
+
+    const init = () => {
+      const g = (window as any).google;
+      if (!g?.accounts?.id || !btnRef.current) return;
+      g.accounts.id.initialize({ client_id: clientId, callback: handleCredential });
+      g.accounts.id.renderButton(btnRef.current, {
+        theme: 'filled_black',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        width: 280,
+      });
+    };
+
+    if ((window as any).google?.accounts?.id) {
+      init();
+    } else {
+      let s = document.getElementById('gsi-script') as HTMLScriptElement | null;
+      if (!s) {
+        s = document.createElement('script');
+        s.id = 'gsi-script';
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        document.head.appendChild(s);
+      }
+      s.addEventListener('load', init, { once: true });
+    }
+  }, [clientId]);
+
+  return (
+    <motion.div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative z-10 bg-[#0f0f1f] border border-white/10 rounded-2xl p-8 w-full max-w-sm mx-4 text-center shadow-2xl"
+      >
+        <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-5">
+          <Sparkles className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Welcome to LifePilot</h2>
+        <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+          Sign in with Google to access your Personal Assistant, Shopping Advisor, and Symptom Analyzer.
+        </p>
+        <div className="flex justify-center min-h-[44px]">
+          {clientId ? (
+            <div ref={btnRef} />
+          ) : (
+            <p className="text-red-400 text-xs">
+              VITE_GOOGLE_CLIENT_ID is not configured. Add it to .env.local to enable sign-in.
+            </p>
+          )}
+        </div>
+        <p className="mt-6 text-gray-600 text-xs">
+          Your session is secured with a signed HTTP-only cookie.
+        </p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -79,6 +176,9 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -97,6 +197,14 @@ export default function ChatInterface() {
   const currentFeature = features.find(f => f.id === activeFeature)!;
 
   useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(({ user: u }) => { if (u) setUser(u); })
+      .catch(() => {})
+      .finally(() => setAuthLoading(false));
+  }, []);
+
+  useEffect(() => {
     const handler = (e: MouseEvent) => { mouseX.set(e.clientX); mouseY.set(e.clientY); };
     window.addEventListener('mousemove', handler);
     return () => window.removeEventListener('mousemove', handler);
@@ -113,21 +221,21 @@ export default function ChatInterface() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/${activeFeature}`, {
+      const response = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage.content }),
+        body: JSON.stringify({ agent: activeFeature, message: userMessage.content }),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: response.statusText }));
         throw new Error(errorData.error || 'Failed to fetch response');
       }
-      const data = await response.json();
-      if (!data || typeof data !== 'object') throw new Error('Invalid response format');
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: '', type: activeFeature, data }]);
+      const result = await response.json();
+      if (!result?.success) throw new Error(result?.error || 'Invalid response format');
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: result.reasoning || '', type: activeFeature, data: result.response }]);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: `Error: ${errorMessage}. Please check your API key and try again.` }]);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: `Error: ${errorMessage}. Please try again.` }]);
     } finally {
       setIsLoading(false);
     }
@@ -138,6 +246,31 @@ export default function ChatInterface() {
     setMessages([]);
     setInput('');
   };
+
+  const handleSignOut = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    setUser(null);
+    setShowChat(false);
+    setMessages([]);
+  };
+
+  const openChat = (featureId?: FeatureType) => {
+    if (!user) { setShowAuthModal(true); return; }
+    if (featureId) handleFeatureSwitch(featureId);
+    setShowChat(true);
+  };
+
+  if (authLoading) {
+    return (
+      <div className="w-full min-h-screen bg-[#0a0a1a] flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
 
   const renderMessageData = (msg: Message) => {
     if (!msg.data) return <p className="text-gray-200 leading-relaxed">{msg.content}</p>;
@@ -219,7 +352,7 @@ export default function ChatInterface() {
 
         {/* Navbar */}
         <motion.nav initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-          className="backdrop-blur-xl bg-[#0a0a1a]/80 border-b border-white/[0.06] px-6 sm:px-8 py-4 sticky top-0 z-50">
+          className="backdrop-blur-xl bg-[#0a0a1a]/80 border-b border-white/[0.06] px-6 sm:px-8 py-4 shrink-0 z-50">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             {/* Logo */}
             <motion.div whileHover={{ scale: 1.03 }} className="flex items-center gap-3 cursor-pointer"
@@ -248,19 +381,54 @@ export default function ChatInterface() {
               </div>
             )}
 
+            {/* Agent switcher (chat only) */}
+            {showChat && (
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                {features.map(f => {
+                  const Icon = f.icon;
+                  const isActive = activeFeature === f.id;
+                  return (
+                    <button key={f.id} onClick={() => handleFeatureSwitch(f.id as FeatureType)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isActive ? 'bg-white/[0.08] text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                      }`}>
+                      <Icon className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{f.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Right side */}
             <div className="flex items-center gap-3">
+              {user && (
+                <div className="hidden sm:flex items-center gap-2">
+                  <img src={user.picture} alt={user.name} referrerPolicy="no-referrer"
+                    className="w-7 h-7 rounded-full border border-white/20 object-cover" />
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={handleSignOut}
+                    className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1">
+                    <LogOut className="w-3.5 h-3.5" /> Sign out
+                  </motion.button>
+                </div>
+              )}
               {showChat ? (
                 <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   onClick={() => { setShowChat(false); setMessages([]); }}
                   className="text-sm text-gray-400 hover:text-white transition-colors">
                   ← Back to Home
                 </motion.button>
-              ) : (
+              ) : user ? (
                 <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  onClick={() => setShowChat(true)}
+                  onClick={() => openChat()}
                   className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 px-5 py-2.5 rounded-lg transition-all">
                   Open Chat
+                </motion.button>
+              ) : (
+                <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  onClick={() => setShowAuthModal(true)}
+                  className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 px-5 py-2.5 rounded-lg transition-all">
+                  Sign In
                 </motion.button>
               )}
             </div>
@@ -313,9 +481,9 @@ export default function ChatInterface() {
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                       className="flex flex-col sm:flex-row gap-4 justify-center">
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                        onClick={() => setShowChat(true)}
+                        onClick={() => openChat()}
                         className="px-8 py-4 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
-                        <MessageSquare className="w-5 h-5" /> Start Chatting
+                        <MessageSquare className="w-5 h-5" /> {user ? 'Start Chatting' : 'Sign In to Start'}
                       </motion.button>
                       <motion.a whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} href="#features"
                         className="px-8 py-4 rounded-xl font-semibold text-gray-300 border border-white/[0.12] hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2">
@@ -328,7 +496,7 @@ export default function ChatInterface() {
                       className="mt-16 grid grid-cols-3 gap-6 max-w-lg mx-auto">
                       {[
                         { label: 'AI Agents', value: 3 },
-                        { label: 'Response Time', value: 2, suffix: 's' },
+                        
                         { label: 'Features', value: 10, suffix: '+' },
                       ].map((s, i) => (
                         <div key={i} className="text-center">
@@ -401,9 +569,9 @@ export default function ChatInterface() {
                           transition={{ delay: 1.2 }}
                           className="flex justify-center pt-2">
                           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                            onClick={() => setShowChat(true)}
+                            onClick={() => openChat()}
                             className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/20 hover:bg-blue-500/5 transition-all">
-                            <MousePointerClick className="w-4 h-4" /> Try it yourself
+                            <MousePointerClick className="w-4 h-4" /> {user ? 'Try it yourself' : 'Sign in to try'}
                           </motion.button>
                         </motion.div>
                       </div>
@@ -432,7 +600,7 @@ export default function ChatInterface() {
                         return (
                           <motion.div key={f.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                             transition={{ delay: i * 0.1 }} whileHover={{ y: -6, scale: 1.02 }}
-                            onClick={() => { handleFeatureSwitch(f.id as FeatureType); setShowChat(true); }}
+                            onClick={() => openChat(f.id as FeatureType)}
                             className="group cursor-pointer p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] hover:bg-white/[0.05] transition-all duration-300 relative overflow-hidden">
                             {/* Hover glow */}
                             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -472,7 +640,7 @@ export default function ChatInterface() {
                       {[
                         { icon: Zap, title: 'Instant Responses', desc: 'Powered by Gemini for sub-second structured AI responses.' },
                         { icon: Shield, title: 'Private & Secure', desc: 'No data stored. Conversations stay in your browser session.' },
-                        { icon: Clock, title: 'Always Available', desc: 'Works 24/7. No sign-up or account required to start.' },
+                        { icon: Clock, title: 'Always Available', desc: 'Works 24/7 — sign in once with Google and access your AI agents any time.' },
                         { icon: Globe, title: 'Works Everywhere', desc: 'Responsive design that works on desktop, tablet, and mobile.' },
                       ].map((item, i) => {
                         const Icon = item.icon;
@@ -610,13 +778,13 @@ export default function ChatInterface() {
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                       className="text-center p-10 rounded-2xl border border-white/[0.08] bg-white/[0.02]">
                       <h2 className="text-3xl font-bold text-white mb-3">Ready to Try?</h2>
-                      <p className="text-gray-400 mb-8">No sign-up. No API key needed. Just start chatting.</p>
+                      <p className="text-gray-400 mb-8">Sign in with Google — free to use, no extra setup needed.</p>
                       <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         {features.map((f, i) => {
                           const Icon = f.icon;
                           return (
                             <motion.button key={f.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                              onClick={() => { handleFeatureSwitch(f.id as FeatureType); setShowChat(true); }}
+                              onClick={() => openChat(f.id as FeatureType)}
                               className={`px-5 py-3 rounded-xl font-medium text-white bg-gradient-to-br ${f.gradient} flex items-center justify-center gap-2 text-sm shadow-lg`}>
                               <Icon className="w-4 h-4" /> {f.label}
                             </motion.button>
@@ -765,6 +933,16 @@ export default function ChatInterface() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Google auth modal */}
+      <AnimatePresence>
+        {showAuthModal && (
+          <GoogleAuthModal
+            onSuccess={(u) => { setUser(u); setShowAuthModal(false); }}
+            onClose={() => setShowAuthModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
