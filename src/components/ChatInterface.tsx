@@ -20,6 +20,8 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
+  Mic,
+  MicOff,
   type LucideIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -183,6 +185,10 @@ export default function ChatInterface() {
   const [historyQuery, setHistoryQuery] = useState('');
   const [historySort, setHistorySort] = useState<'newest' | 'oldest' | 'longest'>('newest');
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const [voiceInterim, setVoiceInterim] = useState('');
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [uiSettings, setUiSettings] = useState<UiSettings>({
     cardTheme: 'dark',
     accent: 'cyan',
@@ -191,6 +197,7 @@ export default function ChatInterface() {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const voiceRecognitionRef = useRef<any>(null);
 
   const features: Feature[] = useMemo(
     () => [
@@ -376,6 +383,67 @@ export default function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceSupported(false);
+      return;
+    }
+
+    setVoiceSupported(true);
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsVoiceListening(true);
+      setVoiceError(null);
+    };
+
+    recognition.onend = () => {
+      setIsVoiceListening(false);
+      setVoiceInterim('');
+    };
+
+    recognition.onresult = (event: any) => {
+      const result = event.results[event.resultIndex];
+      if (!result) return;
+
+      const transcript = String(result[0]?.transcript || '').trim();
+      if (!transcript) return;
+
+      if (result.isFinal) {
+        setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        setVoiceInterim('');
+      } else {
+        setVoiceInterim(transcript);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event?.error === 'not-allowed') {
+        setVoiceError('Microphone permission is blocked. Please allow mic access.');
+      } else {
+        setVoiceError('Voice capture failed. Please try again.');
+      }
+    };
+
+    voiceRecognitionRef.current = recognition;
+
+    return () => {
+      if (voiceRecognitionRef.current) {
+        try {
+          voiceRecognitionRef.current.stop();
+        } catch {
+          // Ignore stop errors during unmount.
+        }
+      }
+    };
+  }, []);
+
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
     if (section) {
@@ -436,6 +504,25 @@ export default function ChatInterface() {
     setActiveNav(navContext);
     setShowChat(false);
     setPendingSectionId(sectionId);
+  };
+
+  const toggleVoiceInput = () => {
+    if (!voiceSupported || !voiceRecognitionRef.current) {
+      setVoiceError('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (isVoiceListening) {
+      voiceRecognitionRef.current.stop();
+      return;
+    }
+
+    try {
+      setVoiceError(null);
+      voiceRecognitionRef.current.start();
+    } catch {
+      setVoiceError('Unable to start microphone. Please try again.');
+    }
   };
 
   const streamText = async (id: string, full: string, feature: FeatureType) => {
@@ -505,6 +592,10 @@ export default function ChatInterface() {
     if (!user) {
       setShowAuthModal(true);
       return;
+    }
+
+    if (isVoiceListening && voiceRecognitionRef.current) {
+      voiceRecognitionRef.current.stop();
     }
 
     const featureAtSend = activeFeature;
@@ -979,6 +1070,21 @@ export default function ChatInterface() {
                               <p className={`mt-1 text-sm ${detailClass}`}>Agent actions + workflow outputs</p>
                             </div>
                           </div>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => {
+                                openChat('assistant');
+                                setTimeout(() => toggleVoiceInput(), 180);
+                              }}
+                              className={`rounded-md border px-3 py-1.5 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}
+                            >
+                              Start Voice Assistant in Chat
+                            </button>
+                            <span className={`rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs ${bodyClass}`}>
+                              {voiceSupported ? 'Mic supported in this browser' : 'Mic not supported in this browser'}
+                            </span>
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -994,13 +1100,6 @@ export default function ChatInterface() {
                 className="px-4 py-20 sm:px-6"
               >
                 <div className="mx-auto max-w-6xl">
-                  <div className="mb-8 text-center">
-                    <h2 className={`text-4xl font-bold ${titleClass}`}>Automation Hub</h2>
-                    <p className={`mx-auto mt-3 max-w-3xl text-sm sm:text-base ${bodyClass}`}>
-                      Explore the intelligence network and the practical automations that make NovaFlow fast, reliable, and hands-free.
-                    </p>
-                  </div>
-
                   <div id="intelligence-map">
                     <NeuraFlow />
                   </div>
@@ -1320,8 +1419,21 @@ export default function ChatInterface() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={`Ask ${currentFeature.label}...`}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-4 pr-12 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-4 pr-24 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none"
                     />
+                    <button
+                      type="button"
+                      onClick={toggleVoiceInput}
+                      disabled={!voiceSupported}
+                      className={`absolute right-12 top-1/2 -translate-y-1/2 rounded-lg p-2 text-white transition ${
+                        isVoiceListening
+                          ? 'bg-red-500/80 hover:bg-red-500'
+                          : 'bg-white/10 hover:bg-white/20'
+                      } disabled:cursor-not-allowed disabled:opacity-40`}
+                      aria-label="Toggle voice input"
+                    >
+                      {isVoiceListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </button>
                     <motion.button
                       type="submit"
                       disabled={!input.trim() || isLoading}
@@ -1332,6 +1444,19 @@ export default function ChatInterface() {
                       <Send className="h-4 w-4" />
                     </motion.button>
                   </form>
+
+                  {(isVoiceListening || voiceInterim || voiceError) && (
+                    <div className="mt-2 text-xs">
+                      {voiceError ? (
+                        <p className="text-red-300">{voiceError}</p>
+                      ) : (
+                        <p className={`${activeAccent.text}`}>
+                          {isVoiceListening ? 'Listening...' : 'Voice ready.'}
+                          {voiceInterim ? ` ${voiceInterim}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.main>
