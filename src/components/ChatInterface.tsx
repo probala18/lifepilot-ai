@@ -305,6 +305,17 @@ export default function ChatInterface() {
   }, [uiSettings.accent]);
 
   useEffect(() => {
+    if (uiSettings.cardTheme === 'light' && uiSettings.particles) {
+      setUiSettings((prev) => ({ ...prev, particles: false }));
+      return;
+    }
+
+    if (uiSettings.cardTheme === 'dark' && !uiSettings.particles) {
+      setUiSettings((prev) => ({ ...prev, particles: true }));
+    }
+  }, [uiSettings.cardTheme, uiSettings.particles]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
@@ -1000,13 +1011,13 @@ export default function ChatInterface() {
                   <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Card Theme</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
-                      onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'dark' }))}
+                      onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'dark', particles: true }))}
                       className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'dark' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
                     >
                       Dark
                     </button>
                     <button
-                      onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'light' }))}
+                      onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'light', particles: false }))}
                       className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'light' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
                     >
                       White
@@ -1055,10 +1066,17 @@ export default function ChatInterface() {
                 <div className={subPanelClass}>
                   <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Background Motion</p>
                   <button
-                    onClick={() => setUiSettings((prev) => ({ ...prev, particles: !prev.particles }))}
-                    className={`mt-3 rounded-md border px-3 py-1.5 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}
+                    onClick={() => {
+                      if (uiSettings.cardTheme === 'dark') {
+                        setUiSettings((prev) => ({ ...prev, particles: true }));
+                      }
+                    }}
+                    disabled={uiSettings.cardTheme === 'light'}
+                    className={`mt-3 rounded-md border px-3 py-1.5 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text} disabled:cursor-not-allowed disabled:opacity-50`}
                   >
-                    {uiSettings.particles ? 'Particles: On' : 'Particles: Off'}
+                    {uiSettings.cardTheme === 'light'
+                      ? 'Particles: Off (Light mode)'
+                      : 'Particles: On (Dark mode)'}
                   </button>
                 </div>
               </div>
