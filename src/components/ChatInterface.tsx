@@ -22,6 +22,8 @@ import {
   ChevronUp,
   Mic,
   MicOff,
+  Sun,
+  Moon,
   type LucideIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -321,6 +323,10 @@ export default function ChatInterface() {
   const titleClass = uiSettings.cardTheme === 'light' ? 'text-slate-900' : 'text-white';
   const bodyClass = uiSettings.cardTheme === 'light' ? 'text-slate-600' : 'text-slate-400';
   const detailClass = uiSettings.cardTheme === 'light' ? 'text-slate-700' : 'text-slate-200';
+  const bedrockBadgeClass =
+    uiSettings.cardTheme === 'light'
+      ? 'border-sky-500/40 bg-gradient-to-r from-sky-500/15 via-cyan-500/15 to-emerald-500/15 text-slate-700 shadow-[0_0_16px_rgba(56,189,248,0.15)]'
+      : 'border-cyan-400/40 bg-gradient-to-r from-cyan-500/20 via-sky-500/20 to-emerald-500/20 text-cyan-100 shadow-[0_0_20px_rgba(6,182,212,0.22)]';
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -717,12 +723,30 @@ export default function ChatInterface() {
     { label: 'Settings', icon: Settings },
   ];
 
-  const quickNavItems: { label: string; sectionId: string; navContext: NavLabel }[] = [
-    { label: 'Demo', sectionId: 'demo-video', navContext: 'Home' },
-    { label: 'Problem', sectionId: 'problem-section', navContext: 'Home' },
-    { label: 'Architecture', sectionId: 'architecture-section', navContext: 'Home' },
-    { label: 'Voice AI', sectionId: 'voice-assistant', navContext: 'Home' },
-    { label: 'Features', sectionId: 'key-features', navContext: 'Home' },
+  const quickActions: { label: string; hint: string; onClick: () => void }[] = [
+    {
+      label: 'Start Voice Chat',
+      hint: 'Open assistant and listen',
+      onClick: () => {
+        openChat('assistant');
+        setTimeout(() => toggleVoiceInput(), 180);
+      },
+    },
+    {
+      label: 'View Architecture',
+      hint: 'Jump to NeuraFlow diagram',
+      onClick: () => handleQuickNavigation('architecture-section', 'Home'),
+    },
+    {
+      label: 'Open Demo Block',
+      hint: 'Go to video panel',
+      onClick: () => handleQuickNavigation('demo-video', 'Home'),
+    },
+    {
+      label: 'History Insights',
+      hint: 'Jump to analytics timeline',
+      onClick: () => handleQuickNavigation('history', 'History'),
+    },
   ];
 
   return (
@@ -777,13 +801,14 @@ export default function ChatInterface() {
             <div className="mt-4 border-t border-white/10 pt-3">
               <p className="mb-2 text-[11px] uppercase tracking-wider text-slate-500">Quick Links</p>
               <div className="space-y-1">
-                {quickNavItems.map((item) => (
+                {quickActions.map((item) => (
                   <button
                     key={item.label}
-                    className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    onClick={() => handleQuickNavigation(item.sectionId, item.navContext)}
+                    className="w-full rounded-md border border-white/10 px-2 py-1.5 text-left text-xs text-slate-300 hover:bg-white/5"
+                    onClick={item.onClick}
                   >
-                    {item.label}
+                    <span className="block font-semibold">{item.label}</span>
+                    <span className="mt-0.5 block text-[10px] text-slate-500">{item.hint}</span>
                   </button>
                 ))}
               </div>
@@ -824,13 +849,14 @@ export default function ChatInterface() {
         <div className="mt-4 border-t border-white/10 pt-3">
           <p className="mb-2 text-[11px] uppercase tracking-wider text-slate-500">Quick Links</p>
           <div className="space-y-1">
-            {quickNavItems.map((item) => (
+            {quickActions.map((item) => (
               <button
                 key={item.label}
-                className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                onClick={() => handleQuickNavigation(item.sectionId, item.navContext)}
+                className="w-full rounded-md border border-white/10 px-2 py-1.5 text-left text-xs text-slate-300 hover:bg-white/5"
+                onClick={item.onClick}
               >
-                {item.label}
+                <span className="block font-semibold">{item.label}</span>
+                <span className="mt-0.5 block text-[10px] text-slate-500">{item.hint}</span>
               </button>
             ))}
           </div>
@@ -848,7 +874,7 @@ export default function ChatInterface() {
               <div>
                 <h1 className="text-lg font-bold">NovaFlow AI</h1>
                 <p className="text-xs text-slate-400">Your Autonomous AI Operating System</p>
-                <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-cyan-400/40 bg-gradient-to-r from-cyan-500/20 via-sky-500/20 to-emerald-500/20 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-cyan-100 shadow-[0_0_20px_rgba(6,182,212,0.22)]">
+                <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${bedrockBadgeClass}`}>
                   <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
                   Built with Amazon Nova on AWS Bedrock
                 </span>
@@ -856,6 +882,21 @@ export default function ChatInterface() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() =>
+                  setUiSettings((prev) => ({
+                    ...prev,
+                    cardTheme: prev.cardTheme === 'light' ? 'dark' : 'light',
+                    particles: prev.cardTheme === 'light',
+                  }))
+                }
+                className="rounded-lg border border-white/10 bg-white/5 p-2 text-slate-200 hover:border-cyan-500/30"
+                aria-label="Toggle theme"
+                title={uiSettings.cardTheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+              >
+                {uiSettings.cardTheme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </button>
+
               {user ? (
                 <>
                   <img src={user.picture} alt={user.name} className="h-8 w-8 rounded-full border border-white/20" referrerPolicy="no-referrer" />
@@ -1022,10 +1063,7 @@ export default function ChatInterface() {
                                 title: 'AI Decision Engine',
                                 desc: 'Analyzes options and helps users make better purchasing or planning decisions.',
                               },
-                              {
-                                title: 'Voice Control',
-                                desc: 'Users can interact naturally through voice using ElevenLabs voice AI.',
-                              },
+                            
                               {
                                 title: 'Multi-Agent Intelligence',
                                 desc: 'Specialized AI agents collaborate to complete complex tasks.',
@@ -1424,12 +1462,11 @@ export default function ChatInterface() {
                     <button
                       type="button"
                       onClick={toggleVoiceInput}
-                      disabled={!voiceSupported}
-                      className={`absolute right-12 top-1/2 -translate-y-1/2 rounded-lg p-2 text-white transition ${
+                      className={`absolute right-12 top-1/2 z-20 -translate-y-1/2 rounded-lg p-2 text-white transition ${
                         isVoiceListening
                           ? 'bg-red-500/80 hover:bg-red-500'
                           : 'bg-white/10 hover:bg-white/20'
-                      } disabled:cursor-not-allowed disabled:opacity-40`}
+                      }`}
                       aria-label="Toggle voice input"
                     >
                       {isVoiceListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}

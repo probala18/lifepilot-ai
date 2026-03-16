@@ -114,7 +114,9 @@ export default function Hero({ user, onStartClick }: HeroProps) {
             >
               NovaFlow
               <br />
-              <span className="gradient-text">Your AI Productivity Operating System</span>
+              <span className="bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
+                Your AI Productivity Operating System
+              </span>
             </motion.h1>
 
             <motion.p
