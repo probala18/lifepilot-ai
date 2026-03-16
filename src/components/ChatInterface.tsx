@@ -156,10 +156,14 @@ function GoogleAuthModal({ onSuccess, onClose }: { onSuccess: (u: AuthUser) => v
 }
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesByFeature, setMessagesByFeature] = useState<Record<FeatureType, Message[]>>({
+    assistant: [],
+    shopping: [],
+    health: [],
+  });
   const [input, setInput] = useState('');
   const [activeFeature, setActiveFeature] = useState<FeatureType>('assistant');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingFeature, setLoadingFeature] = useState<FeatureType | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState<NavLabel>('Home');
@@ -213,6 +217,8 @@ export default function ChatInterface() {
   );
 
   const currentFeature = features.find((f) => f.id === activeFeature)!;
+  const messages = messagesByFeature[activeFeature] || [];
+  const isLoading = loadingFeature === activeFeature;
   const filteredHistory = historyFilter === 'all' ? historyEntries : historyEntries.filter((entry) => entry.feature === historyFilter);
 
   const accentClassMap: Record<UiSettings['accent'], { solid: string; soft: string; border: string; text: string }> = {
@@ -314,13 +320,23 @@ export default function ChatInterface() {
   useEffect(() => {
     if (showChat || !pendingSectionId) return;
 
-    // Wait one paint so landing sections exist after the chat->landing transition.
-    const frame = window.requestAnimationFrame(() => {
-      scrollToSection(pendingSectionId);
-      setPendingSectionId(null);
-    });
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      const section = document.getElementById(pendingSectionId);
+      attempts += 1;
 
-    return () => window.cancelAnimationFrame(frame);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setPendingSectionId(null);
+        window.clearInterval(timer);
+      } else if (attempts > 18) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setPendingSectionId(null);
+        window.clearInterval(timer);
+      }
+    }, 90);
+
+    return () => window.clearInterval(timer);
   }, [showChat, pendingSectionId]);
 
   const handleSidebarNavigation = (label: NavLabel) => {
@@ -346,12 +362,45 @@ export default function ChatInterface() {
     setPendingSectionId(sectionMap[label]);
   };
 
-  const streamText = async (id: string, full: string) => {
+  const streamText = async (id: string, full: string, feature: FeatureType) => {
     for (let i = 1; i <= full.length; i += 2) {
       await new Promise((resolve) => setTimeout(resolve, 10));
-      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content: full.slice(0, i) } : m)));
+      setMessagesByFeature((prev) => ({
+        ...prev,
+        [feature]: prev[feature].map((m) => (m.id === id ? { ...m, content: full.slice(0, i) } : m)),
+      }));
     }
-    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content: full } : m)));
+    setMessagesByFeature((prev) => ({
+      ...prev,
+      [feature]: prev[feature].map((m) => (m.id === id ? { ...m, content: full } : m)),
+    }));
+  };
+
+  const formatHistoryAnswer = (feature: FeatureType, reasoning: string, data: any) => {
+    const lines: string[] = [reasoning.trim() || 'Done.'];
+
+    if (feature === 'assistant' && data) {
+      lines.push('');
+      lines.push(`Task: ${data.task || 'N/A'}`);
+      lines.push(`Time: ${data.time || 'N/A'}`);
+      lines.push(`Action: ${data.suggestedAction || 'N/A'}`);
+    }
+
+    if (feature === 'shopping' && data) {
+      lines.push('');
+      lines.push(`Recommendation: ${data.recommendation || 'N/A'}`);
+      lines.push(`Reason: ${data.reason || 'N/A'}`);
+      lines.push(`Alternative: ${data.betterAlternative || 'N/A'}`);
+    }
+
+    if (feature === 'health' && data) {
+      lines.push('');
+      lines.push(`Possible Condition: ${data.possibleCondition || 'N/A'}`);
+      lines.push(`Advice: ${data.advice || 'N/A'}`);
+      lines.push(`When To Consult: ${data.whenToConsultDoctor || 'N/A'}`);
+    }
+
+    return lines.join('\n');
   };
 
   const appendHistory = (question: string, answer: string, feature: FeatureType) => {
@@ -382,22 +431,26 @@ export default function ChatInterface() {
       return;
     }
 
+    const featureAtSend = activeFeature;
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: input,
-      type: activeFeature,
+      type: featureAtSend,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessagesByFeature((prev) => ({
+      ...prev,
+      [featureAtSend]: [...prev[featureAtSend], userMessage],
+    }));
     setInput('');
-    setIsLoading(true);
+    setLoadingFeature(featureAtSend);
 
     try {
       const response = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent: activeFeature, message: userMessage.content }),
+        body: JSON.stringify({ agent: featureAtSend, message: userMessage.content }),
       });
 
       if (!response.ok) {
@@ -409,33 +462,40 @@ export default function ChatInterface() {
       if (!result?.success) throw new Error(result?.error || 'Invalid response');
 
       const aiId = (Date.now() + 1).toString();
-      setMessages((prev) => [
+      setMessagesByFeature((prev) => ({
         ...prev,
-        {
-          id: aiId,
-          role: 'ai',
-          content: '',
-          type: activeFeature,
-          data: result.response,
-        },
-      ]);
+        [featureAtSend]: [
+          ...prev[featureAtSend],
+          {
+            id: aiId,
+            role: 'ai',
+            content: '',
+            type: featureAtSend,
+            data: result.response,
+          },
+        ],
+      }));
 
       const fullText = (result.reasoning || 'Done.').trim();
-      await streamText(aiId, fullText);
-      appendHistory(userMessage.content, fullText, activeFeature);
+      await streamText(aiId, fullText, featureAtSend);
+      appendHistory(userMessage.content, formatHistoryAnswer(featureAtSend, fullText, result.response), featureAtSend);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unexpected error';
-      appendHistory(userMessage.content, `Error: ${message}. Please try again.`, activeFeature);
-      setMessages((prev) => [
+      appendHistory(userMessage.content, `Error: ${message}. Please try again.`, featureAtSend);
+      setMessagesByFeature((prev) => ({
         ...prev,
-        {
-          id: (Date.now() + 2).toString(),
-          role: 'ai',
-          content: `Error: ${message}. Please try again.`,
-        },
-      ]);
+        [featureAtSend]: [
+          ...prev[featureAtSend],
+          {
+            id: (Date.now() + 2).toString(),
+            role: 'ai',
+            content: `Error: ${message}. Please try again.`,
+            type: featureAtSend,
+          },
+        ],
+      }));
     } finally {
-      setIsLoading(false);
+      setLoadingFeature(null);
       setShowChat(true);
       setActiveNav('Agents');
     }
@@ -445,7 +505,8 @@ export default function ChatInterface() {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     setUser(null);
     setShowChat(false);
-    setMessages([]);
+    setMessagesByFeature({ assistant: [], shopping: [], health: [] });
+    setLoadingFeature(null);
     setActiveNav('Home');
   };
 
@@ -490,7 +551,7 @@ export default function ChatInterface() {
   ];
 
   return (
-    <div className={`novaflow-app relative min-h-screen overflow-hidden bg-[#020617] text-white ${uiSettings.cardTheme === 'light' ? 'nf-theme-light' : ''} ${uiSettings.density === 'compact' ? 'text-[14px]' : 'text-[15px]'}`}>
+    <div data-accent={uiSettings.accent} className={`novaflow-app relative min-h-screen overflow-hidden bg-[#020617] text-white ${uiSettings.cardTheme === 'light' ? 'nf-theme-light' : ''} ${uiSettings.density === 'compact' ? 'text-[14px]' : 'text-[15px]'}`}>
       {uiSettings.particles && <ParticleBackground />}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.18),transparent_35%),radial-gradient(circle_at_80%_70%,rgba(16,185,129,0.14),transparent_35%)]" />
 
@@ -755,7 +816,7 @@ export default function ChatInterface() {
                               <span className={`text-xs ${bodyClass}`}>{new Date(entry.createdAt).toLocaleString()}</span>
                             </div>
                             <p className={`text-sm font-semibold ${titleClass}`}>Q: {entry.question}</p>
-                            <p className={`mt-2 text-sm ${detailClass}`}>A: {entry.answer}</p>
+                            <p className={`mt-2 whitespace-pre-wrap text-sm leading-relaxed ${detailClass}`}>A: {entry.answer}</p>
                             <div className="mt-3 flex flex-wrap gap-2">
                               <button
                                 onClick={() => handleReuseHistory(entry)}
@@ -920,10 +981,10 @@ export default function ChatInterface() {
                 </button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-3">
                 <div className={subPanelClass}>
                   <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Card Theme</p>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'dark' }))}
                       className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'dark' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
@@ -961,7 +1022,7 @@ export default function ChatInterface() {
 
                 <div className={subPanelClass}>
                   <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Density</p>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       onClick={() => setUiSettings((prev) => ({ ...prev, density: 'comfortable' }))}
                       className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.density === 'comfortable' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}

@@ -113,7 +113,7 @@ export default function Hero({ user, onStartClick }: HeroProps) {
               className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6"
             >
                 
-              LifePilot AI
+              Nova Flow
               <br />
               <span className="gradient-text">Your Autonomous OS</span>
             </motion.h1>

@@ -105,6 +105,92 @@ h6 {
   border-color: rgba(15, 23, 42, 0.12) !important;
 }
 
+.novaflow-app[data-accent="emerald"] {
+  --accent-cyan: #10b981;
+}
+
+.novaflow-app[data-accent="blue"] {
+  --accent-cyan: #3b82f6;
+}
+
+.novaflow-app[data-accent="emerald"] .text-cyan-200,
+.novaflow-app[data-accent="emerald"] .text-cyan-300,
+.novaflow-app[data-accent="emerald"] .text-cyan-400,
+.novaflow-app[data-accent="emerald"] .text-sky-400 {
+  color: #34d399 !important;
+}
+
+.novaflow-app[data-accent="blue"] .text-cyan-200,
+.novaflow-app[data-accent="blue"] .text-cyan-300,
+.novaflow-app[data-accent="blue"] .text-cyan-400,
+.novaflow-app[data-accent="blue"] .text-sky-400 {
+  color: #60a5fa !important;
+}
+
+.novaflow-app[data-accent="emerald"] .border-cyan-500\/20,
+.novaflow-app[data-accent="emerald"] .border-cyan-500\/25,
+.novaflow-app[data-accent="emerald"] .border-cyan-500\/30,
+.novaflow-app[data-accent="emerald"] .hover\:border-cyan-500\/30:hover,
+.novaflow-app[data-accent="emerald"] .focus\:border-cyan-500\/40:focus {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.novaflow-app[data-accent="blue"] .border-cyan-500\/20,
+.novaflow-app[data-accent="blue"] .border-cyan-500\/25,
+.novaflow-app[data-accent="blue"] .border-cyan-500\/30,
+.novaflow-app[data-accent="blue"] .hover\:border-cyan-500\/30:hover,
+.novaflow-app[data-accent="blue"] .focus\:border-cyan-500\/40:focus {
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+.novaflow-app[data-accent="emerald"] .bg-cyan-500\/10,
+.novaflow-app[data-accent="emerald"] .bg-cyan-500\/20,
+.novaflow-app[data-accent="emerald"] .bg-cyan-500,
+.novaflow-app[data-accent="emerald"] .bg-cyan-400 {
+  background-color: #10b981 !important;
+}
+
+.novaflow-app[data-accent="blue"] .bg-cyan-500\/10,
+.novaflow-app[data-accent="blue"] .bg-cyan-500\/20,
+.novaflow-app[data-accent="blue"] .bg-cyan-500,
+.novaflow-app[data-accent="blue"] .bg-cyan-400 {
+  background-color: #3b82f6 !important;
+}
+
+.novaflow-app[data-accent="emerald"] .from-sky-600,
+.novaflow-app[data-accent="emerald"] .from-cyan-600 {
+  --tw-gradient-from: #047857 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(4 120 87 / 0) var(--tw-gradient-to-position) !important;
+}
+
+.novaflow-app[data-accent="emerald"] .via-cyan-600,
+.novaflow-app[data-accent="emerald"] .via-sky-600 {
+  --tw-gradient-via: #10b981 var(--tw-gradient-via-position) !important;
+}
+
+.novaflow-app[data-accent="emerald"] .to-emerald-500,
+.novaflow-app[data-accent="emerald"] .to-cyan-600,
+.novaflow-app[data-accent="emerald"] .to-blue-600 {
+  --tw-gradient-to: #34d399 var(--tw-gradient-to-position) !important;
+}
+
+.novaflow-app[data-accent="blue"] .from-sky-600,
+.novaflow-app[data-accent="blue"] .from-cyan-600 {
+  --tw-gradient-from: #2563eb var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(37 99 235 / 0) var(--tw-gradient-to-position) !important;
+}
+
+.novaflow-app[data-accent="blue"] .via-cyan-600,
+.novaflow-app[data-accent="blue"] .via-sky-600 {
+  --tw-gradient-via: #3b82f6 var(--tw-gradient-via-position) !important;
+}
+
+.novaflow-app[data-accent="blue"] .to-emerald-500,
+.novaflow-app[data-accent="blue"] .to-cyan-600,
+.novaflow-app[data-accent="blue"] .to-blue-600 {
+  --tw-gradient-to: #60a5fa var(--tw-gradient-to-position) !important;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }
