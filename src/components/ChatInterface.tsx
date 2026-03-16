@@ -693,8 +693,22 @@ export default function ChatInterface() {
                 className="px-4 py-20 sm:px-6"
               >
                 <div className="mx-auto max-w-6xl">
+                  <div className="mb-8 text-center">
+                    <h2 className={`text-4xl font-bold ${titleClass}`}>Automation Hub</h2>
+                    <p className={`mx-auto mt-3 max-w-3xl text-sm sm:text-base ${bodyClass}`}>
+                      Explore the intelligence network and the practical automations that make NovaFlow fast, reliable, and hands-free.
+                    </p>
+                  </div>
+
                   <div id="intelligence-map">
                     <NeuraFlow />
+                  </div>
+
+                  <div className="mb-5 mt-10 text-center">
+                    <h3 className={`text-2xl font-semibold ${titleClass}`}>Why we need Automation</h3>
+                    <p className={`mx-auto mt-2 max-w-2xl text-sm ${bodyClass}`}>
+                      Key capabilities your judges can validate directly in this project.
+                    </p>
                   </div>
 
                   <div id="automation-advantages" className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
