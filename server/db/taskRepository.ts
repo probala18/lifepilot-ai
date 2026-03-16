@@ -34,7 +34,7 @@ export function getDueReminders(): Task[] {
   return db.prepare(`
     SELECT * FROM tasks
     WHERE due_at IS NOT NULL
-      AND due_at <= datetime('now')
+      AND datetime(due_at) <= datetime('now')
       AND reminder_sent = 0
       AND completed = 0
   `).all() as Task[];

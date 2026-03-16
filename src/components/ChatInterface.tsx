@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Menu,
   X,
-  LayoutDashboard,
+  House,
   Bot,
   Workflow,
   History,
@@ -24,7 +24,8 @@ import NeuraFlow from './NeuraFlow';
 import AgentCard from './AgentCard';
 import ChatMessage from './ChatMessage';
 import ParticleBackground from './ParticleBackground';
-import novaFlowLogo from '../assets/novaflow-logo.svg';
+import novaFlowLogo from '../assets/novaflow-logo.png';
+import novaFlowMark from '../assets/novaflow-mark.svg';
 
 type FeatureType = 'assistant' | 'shopping' | 'health';
 
@@ -53,7 +54,22 @@ interface Feature {
   color: string;
 }
 
-type NavLabel = 'Dashboard' | 'Agents' | 'Automations' | 'History' | 'Settings';
+type NavLabel = 'Home' | 'Agents' | 'Automations' | 'History' | 'Settings';
+
+interface HistoryEntry {
+  id: string;
+  feature: FeatureType;
+  question: string;
+  answer: string;
+  createdAt: string;
+}
+
+interface UiSettings {
+  cardTheme: 'dark' | 'light';
+  accent: 'cyan' | 'emerald' | 'blue';
+  density: 'comfortable' | 'compact';
+  particles: boolean;
+}
 
 function GoogleAuthModal({ onSuccess, onClose }: { onSuccess: (u: AuthUser) => void; onClose: () => void }) {
   const btnRef = useRef<HTMLDivElement>(null);
@@ -122,10 +138,7 @@ function GoogleAuthModal({ onSuccess, onClose }: { onSuccess: (u: AuthUser) => v
         <h2 className="mb-1 text-2xl font-bold text-white">Welcome to NovaFlow</h2>
         <p className="mb-5 text-xs text-slate-400">Your Autonomous AI Operating System</p>
 
-        <div className="mb-6 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3">
-          <p className="text-[11px] uppercase tracking-wide text-slate-300">Authorized Login</p>
-          <p className="text-sm font-semibold text-cyan-300">shawni@devpost.com</p>
-        </div>
+        
 
         <p className="mb-6 text-sm text-slate-300">Sign in with Google to unlock agents and automation workflows.</p>
 
@@ -149,11 +162,20 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState<NavLabel>('Dashboard');
+  const [activeNav, setActiveNav] = useState<NavLabel>('Home');
   const [pendingSectionId, setPendingSectionId] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<'all' | FeatureType>('all');
+  const [uiSettings, setUiSettings] = useState<UiSettings>({
+    cardTheme: 'dark',
+    accent: 'cyan',
+    density: 'comfortable',
+    particles: true,
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -191,6 +213,44 @@ export default function ChatInterface() {
   );
 
   const currentFeature = features.find((f) => f.id === activeFeature)!;
+  const filteredHistory = historyFilter === 'all' ? historyEntries : historyEntries.filter((entry) => entry.feature === historyFilter);
+
+  const accentClassMap: Record<UiSettings['accent'], { solid: string; soft: string; border: string; text: string }> = {
+    cyan: {
+      solid: 'bg-cyan-500',
+      soft: 'bg-cyan-500/10',
+      border: 'border-cyan-500/30',
+      text: 'text-cyan-300',
+    },
+    emerald: {
+      solid: 'bg-emerald-500',
+      soft: 'bg-emerald-500/10',
+      border: 'border-emerald-500/30',
+      text: 'text-emerald-300',
+    },
+    blue: {
+      solid: 'bg-blue-500',
+      soft: 'bg-blue-500/10',
+      border: 'border-blue-500/30',
+      text: 'text-blue-300',
+    },
+  };
+
+  const activeAccent = accentClassMap[uiSettings.accent];
+
+  const panelClass =
+    uiSettings.cardTheme === 'light'
+      ? 'rounded-xl border border-slate-200 bg-white/95 p-6 shadow-[0_12px_30px_rgba(2,6,23,0.08)]'
+      : 'rounded-xl border border-white/10 bg-white/5 p-6';
+
+  const subPanelClass =
+    uiSettings.cardTheme === 'light'
+      ? 'rounded-lg border border-slate-200 bg-white p-4'
+      : 'rounded-lg border border-white/10 bg-slate-900/60 p-4';
+
+  const titleClass = uiSettings.cardTheme === 'light' ? 'text-slate-900' : 'text-white';
+  const bodyClass = uiSettings.cardTheme === 'light' ? 'text-slate-600' : 'text-slate-400';
+  const detailClass = uiSettings.cardTheme === 'light' ? 'text-slate-700' : 'text-slate-200';
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -201,6 +261,42 @@ export default function ChatInterface() {
       .catch(() => {})
       .finally(() => setAuthLoading(false));
   }, []);
+
+  useEffect(() => {
+    try {
+      const rawSettings = localStorage.getItem('novaflow-ui-settings-v1');
+      if (rawSettings) {
+        const parsed = JSON.parse(rawSettings) as UiSettings;
+        setUiSettings(parsed);
+      }
+
+      const rawHistory = localStorage.getItem('novaflow-history-v1');
+      if (rawHistory) {
+        const parsed = JSON.parse(rawHistory) as HistoryEntry[];
+        setHistoryEntries(parsed);
+      }
+    } catch {
+      // Ignore localStorage parse errors and keep defaults.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('novaflow-ui-settings-v1', JSON.stringify(uiSettings));
+    } catch {
+      // Ignore storage errors in restricted environments.
+    }
+  }, [uiSettings]);
+
+  useEffect(() => {
+    const accentHexMap: Record<UiSettings['accent'], string> = {
+      cyan: '#06b6d4',
+      emerald: '#10b981',
+      blue: '#3b82f6',
+    };
+
+    document.documentElement.style.setProperty('--accent-cyan', accentHexMap[uiSettings.accent]);
+  }, [uiSettings.accent]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -230,14 +326,21 @@ export default function ChatInterface() {
   const handleSidebarNavigation = (label: NavLabel) => {
     setActiveNav(label);
     setSidebarOpen(false);
+
+    if (label === 'Settings') {
+      setShowSettingsModal(true);
+      return;
+    }
+
+    setShowSettingsModal(false);
     setShowChat(false);
 
     const sectionMap: Record<NavLabel, string> = {
-      Dashboard: 'dashboard',
+      Home: 'home',
       Agents: 'agents',
-      Automations: 'automations',
+      Automations: 'automation-advantages',
       History: 'history',
-      Settings: 'settings',
+      Settings: 'home',
     };
 
     setPendingSectionId(sectionMap[label]);
@@ -249,6 +352,26 @@ export default function ChatInterface() {
       setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content: full.slice(0, i) } : m)));
     }
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content: full } : m)));
+  };
+
+  const appendHistory = (question: string, answer: string, feature: FeatureType) => {
+    const entry: HistoryEntry = {
+      id: Date.now().toString(),
+      feature,
+      question,
+      answer,
+      createdAt: new Date().toISOString(),
+    };
+
+    setHistoryEntries((prev) => {
+      const updated = [entry, ...prev].slice(0, 30);
+      try {
+        localStorage.setItem('novaflow-history-v1', JSON.stringify(updated));
+      } catch {
+        // Ignore storage errors in restricted environments.
+      }
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -299,8 +422,10 @@ export default function ChatInterface() {
 
       const fullText = (result.reasoning || 'Done.').trim();
       await streamText(aiId, fullText);
+      appendHistory(userMessage.content, fullText, activeFeature);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unexpected error';
+      appendHistory(userMessage.content, `Error: ${message}. Please try again.`, activeFeature);
       setMessages((prev) => [
         ...prev,
         {
@@ -321,7 +446,7 @@ export default function ChatInterface() {
     setUser(null);
     setShowChat(false);
     setMessages([]);
-    setActiveNav('Dashboard');
+    setActiveNav('Home');
   };
 
   const openChat = (featureId?: FeatureType) => {
@@ -333,6 +458,15 @@ export default function ChatInterface() {
     setShowChat(true);
     setSidebarOpen(false);
     setActiveNav('Agents');
+  };
+
+  const handleReuseHistory = (entry: HistoryEntry) => {
+    setActiveFeature(entry.feature);
+    setInput(entry.question);
+    setShowChat(true);
+    setActiveNav('Agents');
+    setSidebarOpen(false);
+    setShowSettingsModal(false);
   };
 
   if (authLoading) {
@@ -348,7 +482,7 @@ export default function ChatInterface() {
   }
 
   const sidebarItems: { label: NavLabel; icon: LucideIcon }[] = [
-    { label: 'Dashboard', icon: LayoutDashboard },
+    { label: 'Home', icon: House },
     { label: 'Agents', icon: Bot },
     { label: 'Automations', icon: Workflow },
     { label: 'History', icon: History },
@@ -356,8 +490,8 @@ export default function ChatInterface() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
-      <ParticleBackground />
+    <div className={`novaflow-app relative min-h-screen overflow-hidden bg-[#020617] text-white ${uiSettings.cardTheme === 'light' ? 'nf-theme-light' : ''} ${uiSettings.density === 'compact' ? 'text-[14px]' : 'text-[15px]'}`}>
+      {uiSettings.particles && <ParticleBackground />}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.18),transparent_35%),radial-gradient(circle_at_80%_70%,rgba(16,185,129,0.14),transparent_35%)]" />
 
       <button
@@ -377,7 +511,7 @@ export default function ChatInterface() {
             className="fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col border-r border-white/10 bg-slate-950/85 p-4 backdrop-blur-xl md:hidden"
           >
             <div className="mb-6 mt-12 flex items-center gap-3 md:mt-2">
-              <img src={novaFlowLogo} alt="NovaFlow" className="h-10 w-auto" />
+              <img src={novaFlowMark} alt="NovaFlow" className="h-10 w-10" />
               <div>
                 <p className="text-sm text-slate-400">NovaFlow</p>
                 <p className="text-base font-semibold gradient-text">AI Console</p>
@@ -414,7 +548,7 @@ export default function ChatInterface() {
 
       <aside className="fixed left-0 top-0 z-30 hidden h-screen w-[260px] flex-col border-r border-white/10 bg-slate-950/75 p-4 backdrop-blur-xl md:flex">
         <div className="mb-6 mt-2 flex items-center gap-3">
-          <img src={novaFlowLogo} alt="NovaFlow" className="h-10 w-auto" />
+          <img src={novaFlowMark} alt="NovaFlow" className="h-10 w-10" />
           <div>
             <p className="text-sm text-slate-400">NovaFlow</p>
             <p className="text-base font-semibold gradient-text">AI Console</p>
@@ -440,13 +574,17 @@ export default function ChatInterface() {
         </div>
 
         
+        <div className="mt-auto rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-xs text-cyan-300">
+          <p className="font-semibold">Authorized Login</p>
+          <p className="text-cyan-200">shawni@devpost.com</p>
+        </div>
       </aside>
 
       <div className="relative z-10 min-h-screen md:pl-[260px]">
         <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/45 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
-              <img src={novaFlowLogo} alt="NovaFlow" className="hidden h-9 w-auto md:block" />
+              <img src={novaFlowMark} alt="NovaFlow" className="hidden h-9 w-9 md:block" />
               <div>
                 <h1 className="text-lg font-bold">NovaFlow AI</h1>
                 <p className="text-xs text-slate-400">Your Autonomous AI Operating System</p>
@@ -466,7 +604,10 @@ export default function ChatInterface() {
                 </>
               ) : (
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={() => {
+                    setShowSettingsModal(false);
+                    setShowAuthModal(true);
+                  }}
                   className="rounded-lg bg-gradient-to-r from-sky-600 via-cyan-600 to-emerald-500 px-4 py-2 text-sm font-semibold"
                 >
                   Sign In
@@ -485,7 +626,7 @@ export default function ChatInterface() {
               exit={{ opacity: 0, y: -20 }}
               className="overflow-hidden"
             >
-              <section id="dashboard">
+              <section id="home">
                 <Hero user={user} onStartClick={() => openChat()} />
               </section>
 
@@ -498,6 +639,40 @@ export default function ChatInterface() {
               >
                 <div className="mx-auto max-w-6xl">
                   <NeuraFlow />
+
+                  <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {[
+                      {
+                        title: 'Scheduled Reminders',
+                        desc: 'Minute-wise cron automation sends timely task nudges without manual effort.',
+                        stat: 'Every 1 min',
+                      },
+                      {
+                        title: 'Auto Agent Routing',
+                        desc: 'Requests are routed to specialist agents for planning, shopping, and health analysis.',
+                        stat: '3 AI Agents',
+                      },
+                      {
+                        title: 'Persistent Task Memory',
+                        desc: 'Actions are stored in SQLite so your plan survives refreshes and restarts.',
+                        stat: 'SQLite + Indexes',
+                      },
+                      {
+                        title: 'Secure Workflows',
+                        desc: 'Session-protected APIs keep automation events scoped to authenticated users only.',
+                        stat: 'Auth Guarded',
+                      },
+                    ].map((item) => (
+                      <div key={item.title} className={panelClass}>
+                        <p className="text-xs uppercase tracking-wide text-slate-400">Automation Advantage</p>
+                        <h3 className={`mt-2 text-lg font-semibold ${titleClass}`}>{item.title}</h3>
+                        <p className={`mt-2 text-sm ${bodyClass}`}>{item.desc}</p>
+                        <span className={`mt-4 inline-block rounded-md border px-2.5 py-1 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}>
+                          {item.stat}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </motion.section>
 
@@ -539,28 +714,34 @@ export default function ChatInterface() {
                 viewport={{ once: true }}
                 className="px-4 pb-24 sm:px-6"
               >
-                <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-3">
-                  {[
-                    { icon: Zap, title: 'Fast Responses', desc: 'Smooth 60fps UI and low-latency AI flow.' },
-                    { icon: Shield, title: 'Secure Session', desc: 'Cookie-based auth with protected API routes.' },
-                    { icon: Cpu, title: 'Nova Powered', desc: 'Server-backed Bedrock Nova intelligence.' },
-                  ].map((item, index) => {
-                    const Icon = item.icon;
-                    return (
-                      <motion.div
-                        key={item.title}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: index * 0.08 }}
-                        className="glass rounded-xl p-6"
-                      >
-                        <Icon className="mb-3 h-6 w-6 text-cyan-300" />
-                        <h3 className="mb-2 text-lg font-semibold">{item.title}</h3>
-                        <p className="text-sm text-slate-400">{item.desc}</p>
-                      </motion.div>
-                    );
-                  })}
+                <div className="mx-auto max-w-6xl">
+                  <div className={panelClass}>
+                    <h3 className={`text-xl font-semibold ${titleClass}`}>Conversation History</h3>
+                    <p className={`mt-2 text-sm ${bodyClass}`}>
+                      Every user prompt and AI response is captured here so judges can see clear evidence of your assistant flow.
+                    </p>
+
+                    {historyEntries.length === 0 ? (
+                      <div className="mt-5 rounded-lg border border-dashed border-white/20 px-4 py-6 text-sm text-slate-400">
+                        No history yet. Ask anything in the chat and your Q/A timeline will appear here.
+                      </div>
+                    ) : (
+                      <div className="mt-5 space-y-3">
+                        {historyEntries.map((entry) => (
+                          <div key={entry.id} className={subPanelClass}>
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                              <span className={`rounded-md border px-2.5 py-1 text-xs capitalize ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}>
+                                {entry.feature}
+                              </span>
+                              <span className={`text-xs ${bodyClass}`}>{new Date(entry.createdAt).toLocaleString()}</span>
+                            </div>
+                            <p className={`text-sm font-semibold ${titleClass}`}>Q: {entry.question}</p>
+                            <p className={`mt-2 text-sm ${detailClass}`}>A: {entry.answer}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.section>
 
@@ -571,11 +752,85 @@ export default function ChatInterface() {
                 viewport={{ once: true }}
                 className="px-4 pb-24 sm:px-6"
               >
-                <div className="mx-auto max-w-6xl rounded-xl border border-white/10 bg-white/5 p-6">
-                  <h3 className="text-xl font-semibold text-white">Settings</h3>
-                  <p className="mt-2 text-sm text-slate-400">
-                    Configure your preferred agent workflows, notification behavior, and UI experience.
+                <div className={`mx-auto max-w-6xl ${panelClass}`}>
+                  <h3 className={`text-xl font-semibold ${titleClass}`}>Settings</h3>
+                  <p className={`mt-2 text-sm ${bodyClass}`}>
+                    Customize the interface live. Changes apply instantly and are remembered for your next visit.
                   </p>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className={subPanelClass}>
+                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Card Theme</p>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'dark' }))}
+                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'dark' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                        >
+                          Dark
+                        </button>
+                        <button
+                          onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'light' }))}
+                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'light' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                        >
+                          White
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={subPanelClass}>
+                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Accent</p>
+                      <div className="mt-3 flex gap-2">
+                        {(['cyan', 'emerald', 'blue'] as const).map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setUiSettings((prev) => ({ ...prev, accent: color }))}
+                            className={`h-7 w-7 rounded-full border ${
+                              color === 'cyan'
+                                ? 'bg-cyan-500'
+                                : color === 'emerald'
+                                  ? 'bg-emerald-500'
+                                  : 'bg-blue-500'
+                            } ${uiSettings.accent === color ? 'border-white' : 'border-white/30'}`}
+                            aria-label={`Set accent to ${color}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className={subPanelClass}>
+                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Density</p>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => setUiSettings((prev) => ({ ...prev, density: 'comfortable' }))}
+                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.density === 'comfortable' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                        >
+                          Comfortable
+                        </button>
+                        <button
+                          onClick={() => setUiSettings((prev) => ({ ...prev, density: 'compact' }))}
+                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.density === 'compact' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                        >
+                          Compact
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={subPanelClass}>
+                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Background Motion</p>
+                      <button
+                        onClick={() => setUiSettings((prev) => ({ ...prev, particles: !prev.particles }))}
+                        className={`mt-3 rounded-md border px-3 py-1.5 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}
+                      >
+                        {uiSettings.particles ? 'Particles: On' : 'Particles: Off'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={`mt-5 flex flex-wrap gap-2 text-xs ${activeAccent.text}`}>
+                    <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Auth: Active</span>
+                    <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Cron: Every 1 min</span>
+                    <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Email: Gmail SMTP</span>
+                  </div>
                 </div>
               </motion.section>
             </motion.main>
