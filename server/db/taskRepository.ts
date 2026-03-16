@@ -20,24 +20,36 @@ export function createTask(
   suggestedAction: string | null,
 ): Task {
   const db = getDb();
+  const normalizedDueAt = (() => {
+    if (!dueAt) return null;
+    const parsed = new Date(dueAt).getTime();
+    return Number.isFinite(parsed) ? new Date(parsed).toISOString() : dueAt;
+  })();
+
   const stmt = db.prepare(`
     INSERT INTO tasks (user_sub, user_email, task, due_at, suggested_action)
     VALUES (?, ?, ?, ?, ?)
   `);
-  const result = stmt.run(userSub, userEmail, task, dueAt, suggestedAction);
+  const result = stmt.run(userSub, userEmail, task, normalizedDueAt, suggestedAction);
 
   return db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid) as Task;
 }
 
 export function getDueReminders(): Task[] {
   const db = getDb();
-  return db.prepare(`
+  const candidates = db.prepare(`
     SELECT * FROM tasks
     WHERE due_at IS NOT NULL
-      AND datetime(due_at) <= datetime('now')
       AND reminder_sent = 0
       AND completed = 0
   `).all() as Task[];
+
+  const now = Date.now();
+  return candidates.filter((task) => {
+    if (!task.due_at) return false;
+    const due = new Date(task.due_at).getTime();
+    return Number.isFinite(due) && due <= now;
+  });
 }
 
 export function markReminderSent(taskId: number): void {

@@ -738,11 +738,6 @@ export default function ChatInterface() {
       onClick: () => handleQuickNavigation('architecture-section', 'Home'),
     },
     {
-      label: 'Open Demo Block',
-      hint: 'Go to video panel',
-      onClick: () => handleQuickNavigation('demo-video', 'Home'),
-    },
-    {
       label: 'History Insights',
       hint: 'Jump to analytics timeline',
       onClick: () => handleQuickNavigation('history', 'History'),
@@ -936,31 +931,12 @@ export default function ChatInterface() {
               </section>
 
               <motion.section
-                id="demo-video"
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 className="px-4 pb-24 sm:px-6"
               >
                 <div className="mx-auto max-w-6xl space-y-8">
-                  <div className="text-center">
-                    <h2 className={`text-4xl font-bold ${titleClass}`}>See NovaFlow in Action</h2>
-                    <p className={`mx-auto mt-3 max-w-3xl text-sm sm:text-base ${bodyClass}`}>
-                      Watch how NovaFlow understands user intent, coordinates AI agents, and automatically executes tasks such as scheduling meetings, generating emails, and making decisions.
-                    </p>
-                  </div>
-
-                  <div className={`${panelClass} overflow-hidden`}>
-                    <div className="relative aspect-video w-full rounded-xl border border-dashed border-cyan-500/30 bg-slate-900/40">
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                        <p className={`text-base font-semibold ${titleClass}`}>Embed your demo video here</p>
-                        <p className={`mt-2 max-w-2xl text-sm ${bodyClass}`}>
-                          In this demo, NovaFlow processes a natural language request, reasons using Amazon Nova models, and executes the workflow through our NeuraFlow agent system.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div id="problem-section" className={panelClass}>
                       <button

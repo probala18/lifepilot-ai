@@ -11,7 +11,8 @@ import { startReminderCron } from './server/cron/reminderCron.js';
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const preferredPort = Number(process.env.PORT || 3000);
+  const host = '0.0.0.0';
 
   // Initialize SQLite database (creates tables if needed)
   initDatabase();
@@ -38,10 +39,25 @@ async function startServer() {
     app.use(express.static('dist'));
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    startReminderCron();
-  });
+  const listenWithFallback = (port: number): void => {
+    const server = app.listen(port, host, () => {
+      console.log(`Server running on http://localhost:${port}`);
+      startReminderCron();
+    });
+
+    server.on('error', (err: any) => {
+      if (err?.code === 'EADDRINUSE') {
+        console.warn(`[server] Port ${port} is busy. Retrying on ${port + 1}...`);
+        listenWithFallback(port + 1);
+        return;
+      }
+
+      console.error('[server] Failed to start server:', err);
+      process.exit(1);
+    });
+  };
+
+  listenWithFallback(preferredPort);
 }
 
 startServer();

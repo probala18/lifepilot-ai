@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Zap, Shield, Clock, Globe } from 'lucide-react';
+import { ArrowRight, Zap, Shield, Clock, Globe } from 'lucide-react';
 
 interface HeroProps {
   user: any;
@@ -131,17 +131,6 @@ export default function Hero({ user, onStartClick }: HeroProps) {
               variants={itemVariants}
               className="flex flex-col sm:flex-row gap-4 mb-12"
             >
-              <motion.a
-                href="#demo-video"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-sky-600 via-cyan-600 to-emerald-500 hover:shadow-[0_0_30px_rgba(14,165,233,0.4)] transition-all flex items-center justify-center gap-2 group"
-              >
-                <Sparkles className="w-5 h-5" />
-                Watch Demo
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </motion.a>
-
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
