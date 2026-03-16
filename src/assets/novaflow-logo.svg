@@ -1,0 +1,35 @@
+<svg width="700" height="250" viewBox="0 0 700 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="swirlA" x1="179" y1="18" x2="86" y2="138" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9A2FF" />
+      <stop offset="0.55" stop-color="#A855F7" />
+      <stop offset="1" stop-color="#4F46E5" />
+    </linearGradient>
+    <linearGradient id="swirlB" x1="132" y1="63" x2="251" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8BE9FF" />
+      <stop offset="0.55" stop-color="#22D3EE" />
+      <stop offset="1" stop-color="#0EA5E9" />
+    </linearGradient>
+    <linearGradient id="wordFlow" x1="367" y1="125" x2="560" y2="125" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7DD3FC" />
+      <stop offset="0.5" stop-color="#38BDF8" />
+      <stop offset="1" stop-color="#22D3EE" />
+    </linearGradient>
+    <filter id="softGlow" x="30" y="0" width="260" height="205" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#softGlow)">
+    <path d="M133 35C89 37 56 63 54 95C52 128 84 157 128 162C109 142 104 119 113 97C121 76 142 59 173 48C161 40 147 36 133 35Z" fill="url(#swirlA)" />
+    <path d="M198 43C218 67 221 96 205 122C189 149 156 168 115 174C152 194 201 190 235 164C270 138 281 96 262 62C245 32 216 19 198 43Z" fill="url(#swirlB)" />
+    <circle cx="259" cy="47" r="6" fill="#67E8F9" />
+  </g>
+
+  <text x="54" y="220" font-family="Space Grotesk, Inter, sans-serif" font-size="92" font-weight="700" fill="#F8FAFC">Nova</text>
+  <text x="292" y="220" font-family="Space Grotesk, Inter, sans-serif" font-size="92" font-weight="700" fill="url(#wordFlow)">Flow</text>
+</svg>
