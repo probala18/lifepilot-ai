@@ -112,6 +112,7 @@ export default function Hero({ user, onStartClick }: HeroProps) {
               variants={itemVariants}
               className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6"
             >
+                
               LifePilot AI
               <br />
               <span className="gradient-text">Your Autonomous OS</span>
@@ -142,7 +143,7 @@ export default function Hero({ user, onStartClick }: HeroProps) {
               </motion.button>
 
               <motion.a
-                href="#how-it-works"
+                href="#intelligence-map"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 rounded-xl font-semibold text-white border border-slate-700 hover:border-cyan-500/50 hover:bg-white/5 transition-all flex items-center justify-center gap-2"

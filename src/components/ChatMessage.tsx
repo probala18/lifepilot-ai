@@ -236,4 +236,4 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading }) => {
   );
 };
 
-export default ChatMessage;
+export default React.memo(ChatMessage);

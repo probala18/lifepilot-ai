@@ -1,24 +1,57 @@
 import nodemailer from 'nodemailer';
 
 let transporter: nodemailer.Transporter | null = null;
+let transporterVerified = false;
+
+export function validateEmailConfig(): { ok: boolean; reason?: string } {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+
+  if (!user || !pass) {
+    return {
+      ok: false,
+      reason: 'Missing GMAIL_USER or GMAIL_APP_PASSWORD in .env',
+    };
+  }
+
+  return { ok: true };
+}
 
 function getTransporter(): nodemailer.Transporter {
   if (!transporter) {
-    const user = process.env.GMAIL_USER;
-    const pass = process.env.GMAIL_APP_PASSWORD;
-
-    if (!user || !pass) {
-      throw new Error(
-        'GMAIL_USER and GMAIL_APP_PASSWORD must be set in .env to send reminder emails.',
-      );
+    const cfg = validateEmailConfig();
+    if (!cfg.ok) {
+      throw new Error(cfg.reason);
     }
 
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-    });
+    const user = process.env.GMAIL_USER as string;
+    const pass = process.env.GMAIL_APP_PASSWORD as string;
+
+    // Prefer explicit SMTP config when provided; fallback to Gmail service.
+    if (process.env.SMTP_HOST) {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user, pass },
+      });
+    } else {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass },
+      });
+    }
   }
   return transporter;
+}
+
+export async function verifyEmailTransport(): Promise<void> {
+  const transport = getTransporter();
+  if (transporterVerified) return;
+
+  await transport.verify();
+  transporterVerified = true;
+  console.log('[email] SMTP transporter verified');
 }
 
 export async function sendReminderEmail(
@@ -28,6 +61,10 @@ export async function sendReminderEmail(
   suggestedAction: string | null,
 ): Promise<void> {
   const transport = getTransporter();
+
+  if (!transporterVerified) {
+    await verifyEmailTransport();
+  }
 
   const formattedDue = new Date(dueAt).toLocaleString('en-US', {
     dateStyle: 'full',

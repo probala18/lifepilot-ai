@@ -1,8 +1,17 @@
 import cron from 'node-cron';
 import { getDueReminders, markReminderSent } from '../db/taskRepository.js';
-import { sendReminderEmail } from '../services/emailService.js';
+import { sendReminderEmail, validateEmailConfig, verifyEmailTransport } from '../services/emailService.js';
 
 export function startReminderCron(): void {
+  const emailCfg = validateEmailConfig();
+  if (!emailCfg.ok) {
+    console.warn(`[reminder-cron] Email reminders disabled: ${emailCfg.reason}`);
+  } else {
+    verifyEmailTransport().catch((err) => {
+      console.error('[reminder-cron] SMTP verification failed:', err);
+    });
+  }
+
   // Run every minute
   cron.schedule('* * * * *', async () => {
     try {

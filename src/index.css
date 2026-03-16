@@ -71,6 +71,40 @@ h6 {
   box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.2), 0 0 20px rgba(34, 211, 238, 0.15);
 }
 
+.novaflow-app.nf-theme-light {
+  background: linear-gradient(145deg, #f8fafc 0%, #eef2ff 55%, #f8fafc 100%) !important;
+  color: #0f172a !important;
+}
+
+.novaflow-app.nf-theme-light .glass {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.novaflow-app.nf-theme-light .text-white,
+.novaflow-app.nf-theme-light .text-slate-100,
+.novaflow-app.nf-theme-light .text-slate-200,
+.novaflow-app.nf-theme-light .text-slate-300,
+.novaflow-app.nf-theme-light .text-slate-400,
+.novaflow-app.nf-theme-light .text-slate-500 {
+  color: #1e293b !important;
+}
+
+.novaflow-app.nf-theme-light .bg-slate-950\/45,
+.novaflow-app.nf-theme-light .bg-slate-950\/70,
+.novaflow-app.nf-theme-light .bg-slate-950\/75,
+.novaflow-app.nf-theme-light .bg-slate-950\/85,
+.novaflow-app.nf-theme-light .bg-slate-900\/80,
+.novaflow-app.nf-theme-light .bg-slate-900\/60 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.novaflow-app.nf-theme-light .border-white\/10,
+.novaflow-app.nf-theme-light .border-white\/15,
+.novaflow-app.nf-theme-light .border-white\/20 {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }

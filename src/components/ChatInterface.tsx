@@ -538,10 +538,7 @@ export default function ChatInterface() {
               })}
             </div>
 
-            <div className="mt-auto rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-xs text-cyan-300">
-              <p className="font-semibold">Authorized Login</p>
-              <p className="text-cyan-200">shawni@devpost.com</p>
-            </div>
+            
           </motion.aside>
         )}
       </AnimatePresence>
@@ -574,10 +571,7 @@ export default function ChatInterface() {
         </div>
 
         
-        <div className="mt-auto rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-xs text-cyan-300">
-          <p className="font-semibold">Authorized Login</p>
-          <p className="text-cyan-200">shawni@devpost.com</p>
-        </div>
+        
       </aside>
 
       <div className="relative z-10 min-h-screen md:pl-[260px]">
@@ -638,9 +632,11 @@ export default function ChatInterface() {
                 className="px-4 py-20 sm:px-6"
               >
                 <div className="mx-auto max-w-6xl">
-                  <NeuraFlow />
+                  <div id="intelligence-map">
+                    <NeuraFlow />
+                  </div>
 
-                  <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div id="automation-advantages" className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {[
                       {
                         title: 'Scheduled Reminders',
@@ -721,13 +717,36 @@ export default function ChatInterface() {
                       Every user prompt and AI response is captured here so judges can see clear evidence of your assistant flow.
                     </p>
 
-                    {historyEntries.length === 0 ? (
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      {(['all', 'assistant', 'shopping', 'health'] as const).map((filter) => (
+                        <button
+                          key={filter}
+                          onClick={() => setHistoryFilter(filter)}
+                          className={`rounded-md border px-2.5 py-1 text-xs capitalize ${historyFilter === filter ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                        >
+                          {filter === 'all' ? 'All Agents' : filter}
+                        </button>
+                      ))}
+                      {historyEntries.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setHistoryEntries([]);
+                            localStorage.removeItem('novaflow-history-v1');
+                          }}
+                          className="ml-auto rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs text-red-300"
+                        >
+                          Clear History
+                        </button>
+                      )}
+                    </div>
+
+                    {filteredHistory.length === 0 ? (
                       <div className="mt-5 rounded-lg border border-dashed border-white/20 px-4 py-6 text-sm text-slate-400">
-                        No history yet. Ask anything in the chat and your Q/A timeline will appear here.
+                        No history for this filter yet. Ask in chat to populate this timeline.
                       </div>
                     ) : (
                       <div className="mt-5 space-y-3">
-                        {historyEntries.map((entry) => (
+                        {filteredHistory.map((entry) => (
                           <div key={entry.id} className={subPanelClass}>
                             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                               <span className={`rounded-md border px-2.5 py-1 text-xs capitalize ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}>
@@ -737,99 +756,24 @@ export default function ChatInterface() {
                             </div>
                             <p className={`text-sm font-semibold ${titleClass}`}>Q: {entry.question}</p>
                             <p className={`mt-2 text-sm ${detailClass}`}>A: {entry.answer}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                onClick={() => handleReuseHistory(entry)}
+                                className={`rounded-md border px-2.5 py-1 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}
+                              >
+                                Reuse Prompt
+                              </button>
+                              <button
+                                onClick={() => navigator.clipboard?.writeText(entry.answer).catch(() => {})}
+                                className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-slate-300"
+                              >
+                                Copy Answer
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
                     )}
-                  </div>
-                </div>
-              </motion.section>
-
-              <motion.section
-                id="settings"
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="px-4 pb-24 sm:px-6"
-              >
-                <div className={`mx-auto max-w-6xl ${panelClass}`}>
-                  <h3 className={`text-xl font-semibold ${titleClass}`}>Settings</h3>
-                  <p className={`mt-2 text-sm ${bodyClass}`}>
-                    Customize the interface live. Changes apply instantly and are remembered for your next visit.
-                  </p>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className={subPanelClass}>
-                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Card Theme</p>
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'dark' }))}
-                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'dark' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
-                        >
-                          Dark
-                        </button>
-                        <button
-                          onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'light' }))}
-                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'light' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
-                        >
-                          White
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className={subPanelClass}>
-                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Accent</p>
-                      <div className="mt-3 flex gap-2">
-                        {(['cyan', 'emerald', 'blue'] as const).map((color) => (
-                          <button
-                            key={color}
-                            onClick={() => setUiSettings((prev) => ({ ...prev, accent: color }))}
-                            className={`h-7 w-7 rounded-full border ${
-                              color === 'cyan'
-                                ? 'bg-cyan-500'
-                                : color === 'emerald'
-                                  ? 'bg-emerald-500'
-                                  : 'bg-blue-500'
-                            } ${uiSettings.accent === color ? 'border-white' : 'border-white/30'}`}
-                            aria-label={`Set accent to ${color}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className={subPanelClass}>
-                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Density</p>
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={() => setUiSettings((prev) => ({ ...prev, density: 'comfortable' }))}
-                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.density === 'comfortable' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
-                        >
-                          Comfortable
-                        </button>
-                        <button
-                          onClick={() => setUiSettings((prev) => ({ ...prev, density: 'compact' }))}
-                          className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.density === 'compact' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
-                        >
-                          Compact
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className={subPanelClass}>
-                      <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Background Motion</p>
-                      <button
-                        onClick={() => setUiSettings((prev) => ({ ...prev, particles: !prev.particles }))}
-                        className={`mt-3 rounded-md border px-3 py-1.5 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}
-                      >
-                        {uiSettings.particles ? 'Particles: On' : 'Particles: Off'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={`mt-5 flex flex-wrap gap-2 text-xs ${activeAccent.text}`}>
-                    <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Auth: Active</span>
-                    <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Cron: Every 1 min</span>
-                    <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Email: Gmail SMTP</span>
                   </div>
                 </div>
               </motion.section>
@@ -947,6 +891,112 @@ export default function ChatInterface() {
       </div>
 
       <AnimatePresence>
+        {showSettingsModal && (
+          <motion.div className="fixed inset-0 z-[95] flex items-center justify-center px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowSettingsModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.95 }}
+              className={`relative z-10 w-full max-w-4xl ${panelClass}`}
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className={`text-xl font-semibold ${titleClass}`}>Settings</h3>
+                  <p className={`mt-1 text-sm ${bodyClass}`}>Customize the interface live. Changes affect the entire app shell instantly.</p>
+                </div>
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="rounded-lg border border-white/15 bg-white/5 p-2 text-slate-300"
+                  aria-label="Close settings"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className={subPanelClass}>
+                  <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Card Theme</p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'dark' }))}
+                      className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'dark' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                    >
+                      Dark
+                    </button>
+                    <button
+                      onClick={() => setUiSettings((prev) => ({ ...prev, cardTheme: 'light' }))}
+                      className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.cardTheme === 'light' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                    >
+                      White
+                    </button>
+                  </div>
+                </div>
+
+                <div className={subPanelClass}>
+                  <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Accent</p>
+                  <div className="mt-3 flex gap-2">
+                    {(['cyan', 'emerald', 'blue'] as const).map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setUiSettings((prev) => ({ ...prev, accent: color }))}
+                        className={`h-7 w-7 rounded-full border ${
+                          color === 'cyan'
+                            ? 'bg-cyan-500'
+                            : color === 'emerald'
+                              ? 'bg-emerald-500'
+                              : 'bg-blue-500'
+                        } ${uiSettings.accent === color ? 'border-white' : 'border-white/30'}`}
+                        aria-label={`Set accent to ${color}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className={subPanelClass}>
+                  <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Density</p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => setUiSettings((prev) => ({ ...prev, density: 'comfortable' }))}
+                      className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.density === 'comfortable' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                    >
+                      Comfortable
+                    </button>
+                    <button
+                      onClick={() => setUiSettings((prev) => ({ ...prev, density: 'compact' }))}
+                      className={`rounded-md border px-3 py-1.5 text-xs ${uiSettings.density === 'compact' ? `${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}` : 'border-white/15 text-slate-400'}`}
+                    >
+                      Compact
+                    </button>
+                  </div>
+                </div>
+
+                <div className={subPanelClass}>
+                  <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Background Motion</p>
+                  <button
+                    onClick={() => setUiSettings((prev) => ({ ...prev, particles: !prev.particles }))}
+                    className={`mt-3 rounded-md border px-3 py-1.5 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}
+                  >
+                    {uiSettings.particles ? 'Particles: On' : 'Particles: Off'}
+                  </button>
+                </div>
+              </div>
+
+              <div className={`mt-5 flex flex-wrap gap-2 text-xs ${activeAccent.text}`}>
+                <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Auth: Active</span>
+                <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Cron: Every 1 min</span>
+                <span className={`rounded-md border px-2.5 py-1 ${activeAccent.border} ${activeAccent.soft}`}>Email: Gmail SMTP</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {showAuthModal && (
           <GoogleAuthModal
             onSuccess={(u) => {
