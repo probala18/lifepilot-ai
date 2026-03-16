@@ -112,45 +112,43 @@ export default function Hero({ user, onStartClick }: HeroProps) {
               variants={itemVariants}
               className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6"
             >
-                
-              Nova Flow
+              NovaFlow
               <br />
-              <span className="gradient-text">Your Autonomous OS</span>
+              <span className="gradient-text">Your AI Productivity Operating System</span>
             </motion.h1>
 
             <motion.p
               variants={itemVariants}
               className="text-lg text-slate-300 max-w-2xl leading-relaxed mb-8"
             >
-              An intelligent assistant that manages your emails, schedules meetings, analyzes
-              information, and helps you make smarter decisions. Three specialist agents working
-              together as one seamless system.
+              NovaFlow transforms natural language and voice commands into intelligent automated
+              workflows using collaborative AI agents powered by Amazon Nova.
             </motion.p>
 
             <motion.div
               variants={itemVariants}
               className="flex flex-col sm:flex-row gap-4 mb-12"
             >
+              <motion.a
+                href="#demo-video"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-sky-600 via-cyan-600 to-emerald-500 hover:shadow-[0_0_30px_rgba(14,165,233,0.4)] transition-all flex items-center justify-center gap-2 group"
+              >
+                <Sparkles className="w-5 h-5" />
+                Watch Demo
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </motion.a>
+
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onStartClick}
-                className="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-sky-600 via-cyan-600 to-emerald-500 hover:shadow-[0_0_30px_rgba(14,165,233,0.4)] transition-all flex items-center justify-center gap-2 group"
-              >
-                <Sparkles className="w-5 h-5" />
-                {user ? 'Open Console' : 'Sign In Now'}
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-
-              <motion.a
-                href="#intelligence-map"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 rounded-xl font-semibold text-white border border-slate-700 hover:border-cyan-500/50 hover:bg-white/5 transition-all flex items-center justify-center gap-2"
               >
-                See Intelligence Map
+                Try AI Assistant
                 <ArrowRight className="w-4 h-4" />
-              </motion.a>
+              </motion.button>
             </motion.div>
 
             <motion.div

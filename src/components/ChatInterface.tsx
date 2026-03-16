@@ -16,6 +16,10 @@ import {
   CalendarCheck,
   ShoppingCart,
   Stethoscope,
+  Search,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
   type LucideIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -55,6 +59,7 @@ interface Feature {
 }
 
 type NavLabel = 'Home' | 'Agents' | 'Automations' | 'History' | 'Settings';
+type LandingAccordion = 'problem' | 'solution' | 'architecture' | 'features' | 'voice';
 
 interface HistoryEntry {
   id: string;
@@ -172,8 +177,12 @@ export default function ChatInterface() {
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [activeAccordion, setActiveAccordion] = useState<LandingAccordion>('architecture');
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [historyFilter, setHistoryFilter] = useState<'all' | FeatureType>('all');
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [historySort, setHistorySort] = useState<'newest' | 'oldest' | 'longest'>('newest');
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [uiSettings, setUiSettings] = useState<UiSettings>({
     cardTheme: 'dark',
     accent: 'cyan',
@@ -219,7 +228,55 @@ export default function ChatInterface() {
   const currentFeature = features.find((f) => f.id === activeFeature)!;
   const messages = messagesByFeature[activeFeature] || [];
   const isLoading = loadingFeature === activeFeature;
-  const filteredHistory = historyFilter === 'all' ? historyEntries : historyEntries.filter((entry) => entry.feature === historyFilter);
+
+  const filteredHistory = useMemo(() => {
+    const byFilter =
+      historyFilter === 'all'
+        ? [...historyEntries]
+        : historyEntries.filter((entry) => entry.feature === historyFilter);
+
+    const query = historyQuery.trim().toLowerCase();
+    const bySearch = query
+      ? byFilter.filter((entry) => {
+          return (
+            entry.question.toLowerCase().includes(query) ||
+            entry.answer.toLowerCase().includes(query) ||
+            entry.feature.toLowerCase().includes(query)
+          );
+        })
+      : byFilter;
+
+    return bySearch.sort((a, b) => {
+      if (historySort === 'oldest') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      if (historySort === 'longest') {
+        return b.answer.length - a.answer.length;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [historyEntries, historyFilter, historyQuery, historySort]);
+
+  const historyStats = useMemo(() => {
+    const base = {
+      total: historyEntries.length,
+      assistant: 0,
+      shopping: 0,
+      health: 0,
+      avgAnswer: 0,
+    };
+
+    if (historyEntries.length === 0) return base;
+
+    let totalAnswerChars = 0;
+    for (const entry of historyEntries) {
+      base[entry.feature] += 1;
+      totalAnswerChars += entry.answer.length;
+    }
+
+    base.avgAnswer = Math.round(totalAnswerChars / historyEntries.length);
+    return base;
+  }, [historyEntries]);
 
   const accentClassMap: Record<UiSettings['accent'], { solid: string; soft: string; border: string; text: string }> = {
     cyan: {
@@ -371,6 +428,14 @@ export default function ChatInterface() {
     };
 
     setPendingSectionId(sectionMap[label]);
+  };
+
+  const handleQuickNavigation = (sectionId: string, navContext: NavLabel) => {
+    setSidebarOpen(false);
+    setShowSettingsModal(false);
+    setActiveNav(navContext);
+    setShowChat(false);
+    setPendingSectionId(sectionId);
   };
 
   const streamText = async (id: string, full: string, feature: FeatureType) => {
@@ -561,6 +626,14 @@ export default function ChatInterface() {
     { label: 'Settings', icon: Settings },
   ];
 
+  const quickNavItems: { label: string; sectionId: string; navContext: NavLabel }[] = [
+    { label: 'Demo', sectionId: 'demo-video', navContext: 'Home' },
+    { label: 'Problem', sectionId: 'problem-section', navContext: 'Home' },
+    { label: 'Architecture', sectionId: 'architecture-section', navContext: 'Home' },
+    { label: 'Voice AI', sectionId: 'voice-assistant', navContext: 'Home' },
+    { label: 'Features', sectionId: 'key-features', navContext: 'Home' },
+  ];
+
   return (
     <div data-accent={uiSettings.accent} className={`novaflow-app relative min-h-screen overflow-hidden bg-[#020617] text-white ${uiSettings.cardTheme === 'light' ? 'nf-theme-light' : ''} ${uiSettings.density === 'compact' ? 'text-[14px]' : 'text-[15px]'}`}>
       {uiSettings.particles && <ParticleBackground />}
@@ -610,6 +683,21 @@ export default function ChatInterface() {
               })}
             </div>
 
+            <div className="mt-4 border-t border-white/10 pt-3">
+              <p className="mb-2 text-[11px] uppercase tracking-wider text-slate-500">Quick Links</p>
+              <div className="space-y-1">
+                {quickNavItems.map((item) => (
+                  <button
+                    key={item.label}
+                    className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    onClick={() => handleQuickNavigation(item.sectionId, item.navContext)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             
           </motion.aside>
         )}
@@ -642,6 +730,21 @@ export default function ChatInterface() {
           })}
         </div>
 
+        <div className="mt-4 border-t border-white/10 pt-3">
+          <p className="mb-2 text-[11px] uppercase tracking-wider text-slate-500">Quick Links</p>
+          <div className="space-y-1">
+            {quickNavItems.map((item) => (
+              <button
+                key={item.label}
+                className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                onClick={() => handleQuickNavigation(item.sectionId, item.navContext)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         
         
       </aside>
@@ -654,6 +757,10 @@ export default function ChatInterface() {
               <div>
                 <h1 className="text-lg font-bold">NovaFlow AI</h1>
                 <p className="text-xs text-slate-400">Your Autonomous AI Operating System</p>
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-cyan-400/40 bg-gradient-to-r from-cyan-500/20 via-sky-500/20 to-emerald-500/20 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-cyan-100 shadow-[0_0_20px_rgba(6,182,212,0.22)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
+                  Built with Amazon Nova on AWS Bedrock
+                </span>
               </div>
             </div>
 
@@ -695,6 +802,189 @@ export default function ChatInterface() {
               <section id="home">
                 <Hero user={user} onStartClick={() => openChat()} />
               </section>
+
+              <motion.section
+                id="demo-video"
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="px-4 pb-24 sm:px-6"
+              >
+                <div className="mx-auto max-w-6xl space-y-8">
+                  <div className="text-center">
+                    <h2 className={`text-4xl font-bold ${titleClass}`}>See NovaFlow in Action</h2>
+                    <p className={`mx-auto mt-3 max-w-3xl text-sm sm:text-base ${bodyClass}`}>
+                      Watch how NovaFlow understands user intent, coordinates AI agents, and automatically executes tasks such as scheduling meetings, generating emails, and making decisions.
+                    </p>
+                  </div>
+
+                  <div className={`${panelClass} overflow-hidden`}>
+                    <div className="relative aspect-video w-full rounded-xl border border-dashed border-cyan-500/30 bg-slate-900/40">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                        <p className={`text-base font-semibold ${titleClass}`}>Embed your demo video here</p>
+                        <p className={`mt-2 max-w-2xl text-sm ${bodyClass}`}>
+                          In this demo, NovaFlow processes a natural language request, reasons using Amazon Nova models, and executes the workflow through our NeuraFlow agent system.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div id="problem-section" className={panelClass}>
+                      <button
+                        className="flex w-full items-center justify-between"
+                        onClick={() => setActiveAccordion((prev) => (prev === 'problem' ? 'solution' : 'problem'))}
+                      >
+                        <h3 className={`text-2xl font-semibold ${titleClass}`}>The Problem</h3>
+                        {activeAccordion === 'problem' ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {activeAccordion === 'problem' && (
+                          <motion.ul initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={`mt-3 space-y-2 overflow-hidden text-sm ${detailClass}`}>
+                            <li>Modern productivity tools are fragmented.</li>
+                            <li>Users must constantly switch between apps for emails, calendars, reminders, and decisions.</li>
+                            <li>This creates cognitive overload and lost productivity.</li>
+                          </motion.ul>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <div id="solution-section" className={panelClass}>
+                      <button
+                        className="flex w-full items-center justify-between"
+                        onClick={() => setActiveAccordion((prev) => (prev === 'solution' ? 'architecture' : 'solution'))}
+                      >
+                        <h3 className={`text-2xl font-semibold ${titleClass}`}>Our Solution</h3>
+                        {activeAccordion === 'solution' ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {activeAccordion === 'solution' && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                            <p className={`mt-3 text-sm leading-relaxed ${detailClass}`}>
+                              NovaFlow is an AI-powered productivity operating system that understands user intent and autonomously manages workflows.
+                            </p>
+                            <p className={`mt-2 text-sm leading-relaxed ${detailClass}`}>
+                              Instead of manually switching between apps, users simply ask NovaFlow, and the system handles everything.
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  <div id="architecture-section" className={panelClass}>
+                    <button
+                      className="flex w-full items-center justify-between"
+                      onClick={() => setActiveAccordion((prev) => (prev === 'architecture' ? 'features' : 'architecture'))}
+                    >
+                      <h3 className={`text-2xl font-semibold ${titleClass}`}>How It Works: NeuraFlow Architecture</h3>
+                      {activeAccordion === 'architecture' ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {activeAccordion === 'architecture' && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                          <p className={`mt-2 text-sm ${bodyClass}`}>NovaFlow uses a multi-agent AI architecture called NeuraFlow.</p>
+                          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-center">
+                            {[
+                              '1. User sends voice or text request',
+                              '2. Amazon Nova model understands the intent',
+                              '3. NeuraFlow routes the task to specialized agents',
+                              '4. Agents execute actions such as email drafting, scheduling, or analysis',
+                            ].map((step, idx) => (
+                              <React.Fragment key={step}>
+                                <div className={subPanelClass}>
+                                  <p className={`text-sm font-medium ${detailClass}`}>{step}</p>
+                                </div>
+                                {idx < 3 && (
+                                  <div className="hidden lg:flex items-center justify-center text-cyan-300">→</div>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <div id="key-features" className={panelClass}>
+                    <button
+                      className="flex w-full items-center justify-between"
+                      onClick={() => setActiveAccordion((prev) => (prev === 'features' ? 'voice' : 'features'))}
+                    >
+                      <h3 className={`text-2xl font-semibold ${titleClass}`}>Key Features</h3>
+                      {activeAccordion === 'features' ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {activeAccordion === 'features' && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 overflow-hidden">
+                          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                            {[
+                              {
+                                title: 'AI Personal Assistant',
+                                desc: 'Understands natural language tasks and converts them into structured actions.',
+                              },
+                              {
+                                title: 'Smart Task Automation',
+                                desc: 'Automatically schedules meetings, reminders, and follow-ups.',
+                              },
+                              {
+                                title: 'AI Decision Engine',
+                                desc: 'Analyzes options and helps users make better purchasing or planning decisions.',
+                              },
+                              {
+                                title: 'Voice Control',
+                                desc: 'Users can interact naturally through voice using ElevenLabs voice AI.',
+                              },
+                              {
+                                title: 'Multi-Agent Intelligence',
+                                desc: 'Specialized AI agents collaborate to complete complex tasks.',
+                              },
+                            ].map((feature) => (
+                              <div key={feature.title} className={subPanelClass}>
+                                <p className={`text-sm font-semibold ${titleClass}`}>{feature.title}</p>
+                                <p className={`mt-2 text-sm ${bodyClass}`}>{feature.desc}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <div id="voice-assistant" className={panelClass}>
+                    <button
+                      className="flex w-full items-center justify-between"
+                      onClick={() => setActiveAccordion((prev) => (prev === 'voice' ? 'architecture' : 'voice'))}
+                    >
+                      <h3 className={`text-2xl font-semibold ${titleClass}`}>Voice Assistant with Nova Model</h3>
+                      {activeAccordion === 'voice' ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {activeAccordion === 'voice' && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                          <p className={`mt-3 text-sm leading-relaxed ${detailClass}`}>
+                            NovaFlow voice assistant uses the same Amazon Nova reasoning pipeline as text interactions. Voice input is transcribed, interpreted by Nova, then routed through NeuraFlow agents for execution.
+                          </p>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                            <div className={subPanelClass}>
+                              <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Input</p>
+                              <p className={`mt-1 text-sm ${detailClass}`}>Voice command captured</p>
+                            </div>
+                            <div className={subPanelClass}>
+                              <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Model</p>
+                              <p className={`mt-1 text-sm ${detailClass}`}>Amazon Nova intent reasoning</p>
+                            </div>
+                            <div className={subPanelClass}>
+                              <p className={`text-xs uppercase tracking-wide ${bodyClass}`}>Execution</p>
+                              <p className={`mt-1 text-sm ${detailClass}`}>Agent actions + workflow outputs</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </motion.section>
 
               <motion.section
                 id="automations"
@@ -818,6 +1108,7 @@ export default function ChatInterface() {
                           onClick={() => {
                             setHistoryEntries([]);
                             localStorage.removeItem('novaflow-history-v1');
+                            setExpandedHistoryId(null);
                           }}
                           className="ml-auto rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs text-red-300"
                         >
@@ -826,14 +1117,73 @@ export default function ChatInterface() {
                       )}
                     </div>
 
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                        <input
+                          value={historyQuery}
+                          onChange={(e) => setHistoryQuery(e.target.value)}
+                          placeholder="Search question, answer, or agent"
+                          className="w-full rounded-lg border border-white/15 bg-white/5 py-2 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none"
+                        />
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          setHistorySort((prev) =>
+                            prev === 'newest' ? 'oldest' : prev === 'oldest' ? 'longest' : 'newest',
+                          )
+                        }
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-300"
+                      >
+                        <ArrowUpDown className="h-4 w-4" />
+                        Sort: {historySort === 'newest' ? 'Newest' : historySort === 'oldest' ? 'Oldest' : 'Longest'}
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        { label: 'Total Conversations', value: String(historyStats.total) },
+                        { label: 'Assistant / Shopping / Health', value: `${historyStats.assistant} / ${historyStats.shopping} / ${historyStats.health}` },
+                        { label: 'Avg Answer Length', value: `${historyStats.avgAnswer} chars` },
+                        { label: 'Current View', value: `${filteredHistory.length} shown` },
+                      ].map((stat, idx) => (
+                        <motion.div
+                          key={stat.label}
+                          initial={{ opacity: 0, y: 12 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: idx * 0.06 }}
+                          className={subPanelClass}
+                        >
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">{stat.label}</p>
+                          <p className={`mt-1 text-sm font-semibold ${titleClass}`}>{stat.value}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+
                     {filteredHistory.length === 0 ? (
                       <div className="mt-5 rounded-lg border border-dashed border-white/20 px-4 py-6 text-sm text-slate-400">
                         No history for this filter yet. Ask in chat to populate this timeline.
                       </div>
                     ) : (
-                      <div className="mt-5 space-y-3">
-                        {filteredHistory.map((entry) => (
-                          <div key={entry.id} className={subPanelClass}>
+                      <motion.div layout className="mt-5 space-y-3">
+                        <AnimatePresence initial={false}>
+                        {filteredHistory.map((entry, index) => {
+                          const expanded = expandedHistoryId === entry.id;
+                          const shouldTruncate = entry.answer.length > 280;
+                          const answerText = expanded || !shouldTruncate ? entry.answer : `${entry.answer.slice(0, 280)}...`;
+                          return (
+                          <motion.div
+                            key={entry.id}
+                            layout
+                            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                            transition={{ duration: 0.22, delay: index * 0.015 }}
+                            className={`${subPanelClass} relative overflow-hidden`}
+                          >
+                            <div className={`absolute left-0 top-0 h-full w-1 ${activeAccent.solid}`} />
                             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                               <span className={`rounded-md border px-2.5 py-1 text-xs capitalize ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}>
                                 {entry.feature}
@@ -841,13 +1191,24 @@ export default function ChatInterface() {
                               <span className={`text-xs ${bodyClass}`}>{new Date(entry.createdAt).toLocaleString()}</span>
                             </div>
                             <p className={`text-sm font-semibold ${titleClass}`}>Q: {entry.question}</p>
-                            <p className={`mt-2 whitespace-pre-wrap text-sm leading-relaxed ${detailClass}`}>A: {entry.answer}</p>
+                            <p className={`mt-2 whitespace-pre-wrap text-sm leading-relaxed ${detailClass}`}>A: {answerText}</p>
+
+                            {shouldTruncate && (
+                              <button
+                                onClick={() => setExpandedHistoryId((prev) => (prev === entry.id ? null : entry.id))}
+                                className={`mt-2 inline-flex items-center gap-1 text-xs ${activeAccent.text}`}
+                              >
+                                {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                {expanded ? 'Show less' : 'Show full answer'}
+                              </button>
+                            )}
+
                             <div className="mt-3 flex flex-wrap gap-2">
                               <button
                                 onClick={() => handleReuseHistory(entry)}
                                 className={`rounded-md border px-2.5 py-1 text-xs ${activeAccent.border} ${activeAccent.soft} ${activeAccent.text}`}
                               >
-                                Reuse Prompt
+                                Ask Again
                               </button>
                               <button
                                 onClick={() => navigator.clipboard?.writeText(entry.answer).catch(() => {})}
@@ -856,9 +1217,11 @@ export default function ChatInterface() {
                                 Copy Answer
                               </button>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          </motion.div>
+                        );
+                        })}
+                        </AnimatePresence>
+                      </motion.div>
                     )}
                   </div>
                 </div>
