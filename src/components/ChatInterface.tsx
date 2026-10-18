@@ -19,8 +19,16 @@ import {
   User,
   LogOut,
   ListTodo,
+  Layers,
+  ShieldCheck,
+  Cpu,
+  Mail,
+  ArrowRight,
+  Database,
+  Clock,
 } from 'lucide-react';
 
+import Hero from './Hero';
 import ChatMessage from './ChatMessage';
 import AgentCard from './AgentCard';
 import TaskTray, { TaskItem } from './TaskTray';
@@ -59,6 +67,7 @@ export default function ChatInterface() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
   // Check auth status on load
@@ -103,7 +112,9 @@ export default function ChatInterface() {
 
   // Auto-scroll chat stream
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isLoading]);
 
   // Speech Recognition setup
@@ -167,11 +178,17 @@ export default function ChatInterface() {
     setTaskCount(0);
   };
 
+  const scrollToWorkspace = () => {
+    workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 400);
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const content = (textToSend || input).trim();
     if (!content || isLoading) return;
 
-    // Ensure session exists; if not, auto-activate guest session
     if (!user) {
       await handleDemoSignIn();
     }
@@ -297,45 +314,31 @@ export default function ChatInterface() {
 
   return (
     <div className="min-h-screen bg-[#090b0e] text-[#f3f5f8] flex flex-col antialiased">
-      {/* Top Bar - No glass, pure solid bar */}
-      <header className="h-14 border-b border-[#1e2430] bg-[#090b0e] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+      {/* Top Bar Navigation */}
+      <header className="h-14 border-b border-[#1e2430] bg-[#090b0e] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-6">
+          <a href="#" className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
             <span className="font-semibold text-sm tracking-tight text-[#f3f5f8]">LifePilot</span>
-            <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[#161b24] text-[#9aa2b2]">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#161b24] text-[#9aa2b2]">
               v2.0
             </span>
-          </div>
+          </a>
 
-          <div className="hidden sm:flex items-center gap-1 ml-4 pl-4 border-l border-[#1e2430]">
-            {(['assistant', 'shopping', 'health'] as const).map((agentKey) => {
-              const meta = commandCategories[
-                agentKey === 'assistant'
-                  ? 'schedule'
-                  : agentKey === 'shopping'
-                    ? 'decisions'
-                    : 'health'
-              ];
-              const Icon = meta.icon;
-              const isActive = activeAgent === agentKey;
-
-              return (
-                <button
-                  key={agentKey}
-                  onClick={() => setActiveAgent(agentKey)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-[#1e293b] text-blue-400 border border-blue-500/40'
-                      : 'text-[#9aa2b2] hover:bg-[#161b24] hover:text-[#f3f5f8]'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{meta.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <nav className="hidden md:flex items-center gap-5 text-xs text-[#9aa2b2]">
+            <a href="#overview" className="hover:text-[#f3f5f8] transition-colors">
+              Overview
+            </a>
+            <a href="#workspace" className="hover:text-[#f3f5f8] transition-colors">
+              Assistant
+            </a>
+            <a href="#architecture" className="hover:text-[#f3f5f8] transition-colors">
+              Architecture
+            </a>
+            <a href="#faq" className="hover:text-[#f3f5f8] transition-colors">
+              FAQ
+            </a>
+          </nav>
         </div>
 
         {/* Right header actions */}
@@ -379,7 +382,7 @@ export default function ChatInterface() {
           ) : (
             <button
               onClick={handleDemoSignIn}
-              className="text-xs px-2.5 py-1 rounded bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-medium transition-colors"
+              className="text-xs px-2.5 py-1.5 rounded bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-medium transition-colors"
             >
               Demo Sign-In
             </button>
@@ -387,127 +390,172 @@ export default function ChatInterface() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 flex flex-col max-w-4xl w-full mx-auto px-4 sm:px-6 pt-6 pb-28">
-        {/* Welcome Empty State (When no messages yet) */}
-        {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center py-6">
-            {/* 2-line confident headline per taste-skill */}
-            <div className="text-center mb-8 max-w-xl">
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#f3f5f8] mb-2 leading-tight">
-                Autonomous personal intelligence, grounded in action.
-              </h1>
-              <p className="text-sm text-[#9aa2b2] leading-relaxed">
-                Choose an agent below or ask a question directly to begin coordinating your life.
-              </p>
+      {/* Hero Section (Landing Page) */}
+      <div id="overview">
+        <Hero
+          user={user}
+          onStartClick={scrollToWorkspace}
+          onSelectAgent={(agent) => {
+            setActiveAgent(agent);
+            scrollToWorkspace();
+          }}
+        />
+      </div>
+
+      {/* Main Interactive Assistant Workspace Section */}
+      <section
+        id="workspace"
+        ref={workspaceRef}
+        className="border-t border-[#1e2430] bg-[#090b0e] py-16 px-4 sm:px-6 scroll-mt-14"
+      >
+        <div className="max-w-4xl w-full mx-auto flex flex-col">
+          {/* Section Heading */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b border-[#1e2430] gap-4">
+            <div>
+              <span className="text-xs font-mono uppercase tracking-wider text-blue-400">
+                Live Interactive System
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#f3f5f8] mt-1">
+                Multi-Agent Workspace
+              </h2>
             </div>
 
-            {/* Tri-Agent Cards per taste-skill */}
-            <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-8">
-              {agentDetails.map((agent) => (
-                <AgentCard
-                  key={agent.id}
-                  id={agent.id}
-                  icon={agent.icon}
-                  label={agent.label}
-                  description={agent.description}
-                  examples={agent.examples}
-                  isActive={activeAgent === agent.id}
-                  onClick={(id) => setActiveAgent(id as AgentType)}
-                  onSelectPrompt={(p) => {
-                    setActiveAgent(agent.id as AgentType);
-                    handleSendMessage(p);
-                  }}
-                />
-              ))}
-            </div>
+            {/* Agent Mode Pills */}
+            <div className="flex items-center gap-1.5">
+              {(['assistant', 'shopping', 'health'] as const).map((agentKey) => {
+                const meta = commandCategories[
+                  agentKey === 'assistant'
+                    ? 'schedule'
+                    : agentKey === 'shopping'
+                      ? 'decisions'
+                      : 'health'
+                ];
+                const Icon = meta.icon;
+                const isActive = activeAgent === agentKey;
 
-            {/* Quick Command categories accordion (21st.dev reference) */}
-            <div className="w-full mb-4">
-              <div className="grid grid-cols-3 gap-2.5 mb-3">
-                {Object.entries(commandCategories).map(([key, cat]) => {
-                  const Icon = cat.icon;
-                  const isCatActive = activeCategory === key;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setActiveCategory(isCatActive ? null : key)}
-                      className={`p-3 rounded-lg border text-left flex items-center justify-between transition-colors ${
-                        isCatActive
-                          ? 'bg-[#161b24] border-blue-500/50 text-[#f3f5f8]'
-                          : 'bg-[#10141a] border-[#1e2430] hover:border-[#2c3547] text-[#9aa2b2]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-blue-400" />
-                        <span className="text-xs font-medium text-[#f3f5f8]">{cat.label}</span>
-                      </div>
-                    </button>
-                  );
-                })}
+                return (
+                  <button
+                    key={agentKey}
+                    onClick={() => setActiveAgent(agentKey)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#1e293b] text-blue-400 border border-blue-500/40 shadow-sm'
+                        : 'text-[#9aa2b2] hover:bg-[#161b24] hover:text-[#f3f5f8]'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{meta.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Chat Stream or Quick Launch Panel */}
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-4">
+              {/* Agent Capability Cards */}
+              <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
+                {agentDetails.map((agent) => (
+                  <AgentCard
+                    key={agent.id}
+                    id={agent.id}
+                    icon={agent.icon}
+                    label={agent.label}
+                    description={agent.description}
+                    examples={agent.examples}
+                    isActive={activeAgent === agent.id}
+                    onClick={(id) => setActiveAgent(id as AgentType)}
+                    onSelectPrompt={(p) => {
+                      setActiveAgent(agent.id as AgentType);
+                      handleSendMessage(p);
+                    }}
+                  />
+                ))}
               </div>
 
-              <AnimatePresence>
-                {activeCategory && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="p-3 rounded-lg bg-[#10141a] border border-[#1e2430] space-y-1">
-                      {commandCategories[activeCategory as keyof typeof commandCategories].prompts.map(
-                        (prompt, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              setActiveAgent(
-                                commandCategories[activeCategory as keyof typeof commandCategories]
-                                  .agent
-                              );
-                              handleSendMessage(prompt);
-                            }}
-                            className="w-full text-left p-2 rounded text-xs text-[#cbd5e1] hover:text-white hover:bg-[#161b24] transition-colors flex items-center justify-between"
-                          >
-                            <span>&rarr; {prompt}</span>
-                            <span className="text-[11px] text-[#677184]">Run &rarr;</span>
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        ) : (
-          /* Active Chat Stream */
-          <div className="flex-1 space-y-4 py-4">
-            {messages.map((msg) => (
-              <ChatMessage key={msg.id} message={msg} />
-            ))}
-            {isLoading && (
-              <ChatMessage
-                message={{
-                  id: 'loading',
-                  role: 'ai',
-                  content: '',
-                  type: activeAgent,
-                }}
-                isLoading={true}
-              />
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </main>
+              {/* Quick Command categories accordion (21st.dev reference) */}
+              <div className="w-full mb-6">
+                <div className="grid grid-cols-3 gap-2.5 mb-3">
+                  {Object.entries(commandCategories).map(([key, cat]) => {
+                    const Icon = cat.icon;
+                    const isCatActive = activeCategory === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setActiveCategory(isCatActive ? null : key)}
+                        className={`p-3 rounded-lg border text-left flex items-center justify-between transition-colors ${
+                          isCatActive
+                            ? 'bg-[#161b24] border-blue-500/50 text-[#f3f5f8]'
+                            : 'bg-[#10141a] border-[#1e2430] hover:border-[#2c3547] text-[#9aa2b2]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-blue-400" />
+                          <span className="text-xs font-medium text-[#f3f5f8]">{cat.label}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-      {/* Floating Bottom Prompt Bar (21st.dev inspired, flat surfaces, zero gradients) */}
-      <footer className="fixed bottom-0 inset-x-0 bg-[#090b0e] border-t border-[#1e2430] p-4 z-30">
-        <div className="max-w-3xl mx-auto">
-          <div className="rounded-xl bg-[#10141a] border border-[#1e2430] focus-within:border-blue-500/50 transition-colors shadow-sm overflow-hidden">
-            {/* Input Line */}
-            <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+                <AnimatePresence>
+                  {activeCategory && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-3 rounded-lg bg-[#10141a] border border-[#1e2430] space-y-1">
+                        {commandCategories[activeCategory as keyof typeof commandCategories].prompts.map(
+                          (prompt, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                setActiveAgent(
+                                  commandCategories[activeCategory as keyof typeof commandCategories]
+                                    .agent
+                                );
+                                handleSendMessage(prompt);
+                              }}
+                              className="w-full text-left p-2 rounded text-xs text-[#cbd5e1] hover:text-white hover:bg-[#161b24] transition-colors flex items-center justify-between"
+                            >
+                              <span>&rarr; {prompt}</span>
+                              <span className="text-[11px] text-[#677184]">Run &rarr;</span>
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          ) : (
+            /* Active Messages Stream */
+            <div className="space-y-4 py-4 min-h-[300px]">
+              {messages.map((msg) => (
+                <ChatMessage key={msg.id} message={msg} />
+              ))}
+              {isLoading && (
+                <ChatMessage
+                  message={{
+                    id: 'loading',
+                    role: 'ai',
+                    content: '',
+                    type: activeAgent,
+                  }}
+                  isLoading={true}
+                />
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+
+          {/* Unified Input Box (21st.dev reference, no gradients, pure solid surfaces) */}
+          <div className="mt-4 rounded-xl bg-[#10141a] border border-[#1e2430] focus-within:border-blue-500/50 transition-colors shadow-sm overflow-hidden">
+            <div className="px-4 pt-3.5 pb-2">
               <input
                 ref={inputRef}
                 type="text"
@@ -530,16 +578,14 @@ export default function ChatInterface() {
               />
             </div>
 
-            {/* Controls Bar */}
-            <div className="px-3 pb-2.5 pt-1 border-t border-[#161b24] flex items-center justify-between text-xs">
+            {/* Controls Row */}
+            <div className="px-3 pb-2.5 pt-1.5 border-t border-[#161b24] flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                {/* Active Agent Badge */}
                 <span className="px-2 py-1 rounded bg-[#161b24] text-blue-400 font-medium flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                   <span className="capitalize">{activeAgent}</span>
                 </span>
 
-                {/* Reasoning Toggle Pill */}
                 <button
                   type="button"
                   onClick={() => setReasonEnabled(!reasonEnabled)}
@@ -556,7 +602,6 @@ export default function ChatInterface() {
               </div>
 
               <div className="flex items-center gap-1.5">
-                {/* Microphone Voice Button */}
                 <button
                   type="button"
                   onClick={toggleVoiceInput}
@@ -570,7 +615,6 @@ export default function ChatInterface() {
                   {isListening ? <MicOff className="w-4 h-4 animate-pulse" /> : <Mic className="w-4 h-4" />}
                 </button>
 
-                {/* Send Button */}
                 <button
                   type="button"
                   disabled={!input.trim() || isLoading}
@@ -583,6 +627,143 @@ export default function ChatInterface() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Architecture & How It Works Section */}
+      <section id="architecture" className="py-20 px-4 sm:px-8 border-t border-[#1e2430] bg-[#0c0e13]">
+        <div className="max-w-6xl mx-auto">
+          <div className="max-w-2xl mb-12">
+            <span className="text-xs font-mono uppercase tracking-wider text-blue-400">
+              System Architecture
+            </span>
+            <h2 className="text-3xl font-bold tracking-tight text-[#f3f5f8] mt-1.5 mb-3">
+              How LifePilot executes without hallucinated actions
+            </h2>
+            <p className="text-sm text-[#9aa2b2] leading-relaxed">
+              Every request is routed through a deterministic triage pipeline, validated against strict schemas, and persisted locally.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="p-6 rounded-xl bg-[#10141a] border border-[#1e2430] flex flex-col justify-between">
+              <div>
+                <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-4">
+                  <Cpu className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-semibold text-[#f3f5f8] mb-2">Intent Classification</h3>
+                <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                  Natural language inquiries are parsed into structured entity slots. Dates, priorities, product models, and symptom severity flags are extracted deterministically.
+                </p>
+              </div>
+              <div className="pt-4 mt-6 border-t border-[#1e2430] text-[11px] font-mono text-[#677184]">
+                Phase 01 · Parsing
+              </div>
+            </div>
+
+            <div className="p-6 rounded-xl bg-[#10141a] border border-[#1e2430] flex flex-col justify-between">
+              <div>
+                <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-4">
+                  <Database className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-semibold text-[#f3f5f8] mb-2">Synchronous SQLite Persistence</h3>
+                <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                  Scheduled tasks and reminders are immediately written to local WAL-mode SQLite storage (`lifepilot.db`). No cloud lock-in; your schedule stays local.
+                </p>
+              </div>
+              <div className="pt-4 mt-6 border-t border-[#1e2430] text-[11px] font-mono text-[#677184]">
+                Phase 02 · State
+              </div>
+            </div>
+
+            <div className="p-6 rounded-xl bg-[#10141a] border border-[#1e2430] flex flex-col justify-between">
+              <div>
+                <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-4">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-semibold text-[#f3f5f8] mb-2">Automated Cron Dispatch</h3>
+                <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                  A high-efficiency background node-cron worker polls due reminders every 60 seconds and dispatches verified SMTP reminder emails directly to your inbox.
+                </p>
+              </div>
+              <div className="pt-4 mt-6 border-t border-[#1e2430] text-[11px] font-mono text-[#677184]">
+                Phase 03 · Execution
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-20 px-4 sm:px-8 border-t border-[#1e2430] bg-[#090b0e]">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-xs font-mono uppercase tracking-wider text-blue-400">
+              Frequently Asked Questions
+            </span>
+            <h2 className="text-3xl font-bold tracking-tight text-[#f3f5f8] mt-1.5">
+              Clear answers, zero fluff.
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430]">
+              <h3 className="text-sm font-semibold text-[#f3f5f8] mb-1.5">
+                Where are my tasks and reminders stored?
+              </h3>
+              <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                All tasks are stored in your local SQLite database (`lifepilot.db`) in WAL mode. You have full ownership and direct access to your data.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430]">
+              <h3 className="text-sm font-semibold text-[#f3f5f8] mb-1.5">
+                How does email reminder dispatch work?
+              </h3>
+              <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                LifePilot runs a background cron task every 60 seconds. When a reminder’s due timestamp arrives, the system triggers your configured Gmail or SMTP transporter and flags `reminder_sent = 1` in SQLite.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430]">
+              <h3 className="text-sm font-semibold text-[#f3f5f8] mb-1.5">
+                Does the symptom analyzer provide medical diagnosis?
+              </h3>
+              <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                No. The symptom analyzer is an educational triage protocol designed to provide structured context, self-care suggestions, and red-flag escalation guidance. It never replaces professional medical consultation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer per taste-skill */}
+      <footer className="border-t border-[#1e2430] bg-[#090b0e] py-12 px-4 sm:px-8">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#677184]">
+          <div className="flex items-center gap-2 text-[#9aa2b2]">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="font-semibold text-[#f3f5f8]">LifePilot AI</span>
+            <span>· Autonomous Multi-Agent Intelligence</span>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <a href="#overview" className="hover:text-[#f3f5f8] transition-colors">
+              Overview
+            </a>
+            <a href="#workspace" className="hover:text-[#f3f5f8] transition-colors">
+              Assistant
+            </a>
+            <a href="#architecture" className="hover:text-[#f3f5f8] transition-colors">
+              Architecture
+            </a>
+            <a href="#faq" className="hover:text-[#f3f5f8] transition-colors">
+              FAQ
+            </a>
+          </div>
+
+          <div className="text-[11px] font-mono text-[#677184]">
+            SQLite WAL · Node.js 26 · Framer Motion
+          </div>
+        </div>
       </footer>
 
       {/* Task Drawer */}
@@ -592,7 +773,7 @@ export default function ChatInterface() {
         onSelectTask={(task) => {
           setInput(`Review task: "${task.task}" due on ${task.due_at || 'unscheduled'}`);
           setTaskTrayOpen(false);
-          inputRef.current?.focus();
+          scrollToWorkspace();
         }}
       />
     </div>
