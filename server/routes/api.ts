@@ -137,4 +137,16 @@ router.delete('/tasks/:id', (req: any, res) => {
   }
 });
 
+// Trigger and test cron job on demand
+router.post('/test/trigger-cron', async (_req, res) => {
+  try {
+    const { checkAndDispatchDueReminders } = await import('../cron/reminderCron.js');
+    const result = await checkAndDispatchDueReminders();
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('Trigger Cron Error:', error);
+    res.status(500).json({ success: false, error: error?.message || 'Failed to trigger cron' });
+  }
+});
+
 export default router;
