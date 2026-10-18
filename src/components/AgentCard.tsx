@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { LucideIcon, ArrowUpRight } from 'lucide-react';
 
 interface AgentCardProps {
+  key?: React.Key;
   id: string;
   icon: LucideIcon;
   label: string;
