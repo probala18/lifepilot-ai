@@ -67,6 +67,24 @@ router.get('/me', (req: any, res) => {
   }
 });
 
+// POST /api/auth/demo  – quick guest sign-in for seamless local testing
+router.post('/demo', (_req, res) => {
+  const user = {
+    sub: 'guest-user-pilot',
+    email: 'guest@lifepilot.local',
+    name: 'Guest Pilot',
+    picture: '',
+  };
+  const token = jwt.sign(user, getSessionSecret(), { expiresIn: '7d' });
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.json({ user });
+});
+
 // POST /api/auth/logout  – clear session cookie
 router.post('/logout', (_req, res) => {
   res.clearCookie(SESSION_COOKIE);
