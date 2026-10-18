@@ -1,3 +1,8 @@
 {
-    "typescript.autoClosingTags": false
+    "typescript.autoClosingTags": false,
+    "builder.serverUrl": "https://1183089713664177a15ec9c8aaaeabfe-main_v2.projects.builder.my/",
+    "builder.command": "npm run dev",
+    "builder.runDevServer": false,
+    "builder.autoDetectDevServer": true,
+    "builder.launchType": "editor"
 }

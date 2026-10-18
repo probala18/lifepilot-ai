@@ -1,11 +1,11 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 
 const DB_PATH = path.join(process.cwd(), 'lifepilot.db');
 
-let db: Database.Database;
+let db: DatabaseSync;
 
-export function getDb(): Database.Database {
+export function getDb(): DatabaseSync {
   if (!db) {
     throw new Error('Database not initialized. Call initDatabase() first.');
   }
@@ -13,9 +13,9 @@ export function getDb(): Database.Database {
 }
 
 export function initDatabase(): void {
-  db = new Database(DB_PATH);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+  db = new DatabaseSync(DB_PATH);
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS tasks (

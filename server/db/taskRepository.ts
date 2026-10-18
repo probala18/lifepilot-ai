@@ -32,7 +32,7 @@ export function createTask(
   `);
   const result = stmt.run(userSub, userEmail, task, normalizedDueAt, suggestedAction);
 
-  return db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid) as Task;
+  return db.prepare('SELECT * FROM tasks WHERE id = ?').get(Number(result.lastInsertRowid)) as unknown as Task;
 }
 
 export function getDueReminders(): Task[] {
@@ -42,7 +42,7 @@ export function getDueReminders(): Task[] {
     WHERE due_at IS NOT NULL
       AND reminder_sent = 0
       AND completed = 0
-  `).all() as Task[];
+  `).all() as unknown as Task[];
 
   const now = Date.now();
   return candidates.filter((task) => {
@@ -61,7 +61,7 @@ export function getTasksByUser(userSub: string): Task[] {
   const db = getDb();
   return db.prepare(
     'SELECT * FROM tasks WHERE user_sub = ? ORDER BY created_at DESC',
-  ).all(userSub) as Task[];
+  ).all(userSub) as unknown as Task[];
 }
 
 export function completeTask(taskId: number, userSub: string): boolean {
