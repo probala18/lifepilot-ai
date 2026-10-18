@@ -59,7 +59,16 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [reasonEnabled, setReasonEnabled] = useState<boolean>(true);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('lifepilot-theme') as 'dark' | 'light' | null;
+      if (saved === 'dark' || saved === 'light') return saved;
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return 'light';
+      }
+    }
+    return 'dark';
+  });
   const [taskTrayOpen, setTaskTrayOpen] = useState<boolean>(false);
   const [taskCount, setTaskCount] = useState<number>(0);
   const [isListening, setIsListening] = useState<boolean>(false);
@@ -105,9 +114,21 @@ export default function ChatInterface() {
     checkAuth();
   }, [checkAuth]);
 
-  // Apply theme to document
+  // Apply theme to document element and localStorage
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    }
+    try {
+      localStorage.setItem('lifepilot-theme', theme);
+    } catch {
+      // Ignore
+    }
   }, [theme]);
 
   // Auto-scroll chat stream
@@ -313,29 +334,29 @@ export default function ChatInterface() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#090b0e] text-[#f3f5f8] flex flex-col antialiased">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] flex flex-col antialiased transition-colors duration-150">
       {/* Top Bar Navigation */}
-      <header className="h-14 border-b border-[#1e2430] bg-[#090b0e] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40">
+      <header className="h-14 border-b border-[var(--border-subtle)] bg-[var(--bg-app)] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40 transition-colors">
         <div className="flex items-center gap-6">
           <a href="#" className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-            <span className="font-semibold text-sm tracking-tight text-[#f3f5f8]">LifePilot</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#161b24] text-[#9aa2b2]">
+            <span className="font-semibold text-sm tracking-tight text-[var(--text-main)]">LifePilot</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)]">
               v2.0
             </span>
           </a>
 
-          <nav className="hidden md:flex items-center gap-5 text-xs text-[#9aa2b2]">
-            <a href="#overview" className="hover:text-[#f3f5f8] transition-colors">
+          <nav className="hidden md:flex items-center gap-5 text-xs text-[var(--text-secondary)]">
+            <a href="#overview" className="hover:text-[var(--text-main)] transition-colors">
               Overview
             </a>
-            <a href="#workspace" className="hover:text-[#f3f5f8] transition-colors">
+            <a href="#workspace" className="hover:text-[var(--text-main)] transition-colors">
               Assistant
             </a>
-            <a href="#architecture" className="hover:text-[#f3f5f8] transition-colors">
+            <a href="#architecture" className="hover:text-[var(--text-main)] transition-colors">
               Architecture
             </a>
-            <a href="#faq" className="hover:text-[#f3f5f8] transition-colors">
+            <a href="#faq" className="hover:text-[var(--text-main)] transition-colors">
               FAQ
             </a>
           </nav>
@@ -346,10 +367,10 @@ export default function ChatInterface() {
           {/* SQLite Tasks Drawer Button */}
           <button
             onClick={() => setTaskTrayOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#161b24] hover:bg-[#1c222e] border border-[#1e2430] text-xs text-[#f3f5f8] transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-xs text-[var(--text-main)] transition-colors shadow-sm"
             title="Open SQLite Task Database"
           >
-            <ListTodo className="w-3.5 h-3.5 text-blue-400" />
+            <ListTodo className="w-3.5 h-3.5 text-blue-500" />
             <span className="hidden sm:inline">Tasks</span>
             {taskCount > 0 && (
               <span className="w-4 h-4 rounded-full bg-blue-600 text-white font-mono text-[10px] flex items-center justify-center">
@@ -361,19 +382,19 @@ export default function ChatInterface() {
           {/* Theme Switcher */}
           <button
             onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-            className="p-1.5 rounded-md text-[#9aa2b2] hover:text-[#f3f5f8] hover:bg-[#161b24] transition-colors"
-            title="Toggle color theme"
+            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] transition-colors shadow-sm"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-600" />}
           </button>
 
           {/* User Auth indicator */}
           {user ? (
-            <div className="flex items-center gap-2 pl-2 border-l border-[#1e2430]">
-              <span className="text-xs text-[#9aa2b2] hidden sm:inline">{user.name || user.email}</span>
+            <div className="flex items-center gap-2 pl-2 border-l border-[var(--border-subtle)]">
+              <span className="text-xs text-[var(--text-secondary)] hidden sm:inline">{user.name || user.email}</span>
               <button
                 onClick={handleLogout}
-                className="p-1.5 rounded-md text-[#9aa2b2] hover:text-red-400 hover:bg-[#161b24] transition-colors"
+                className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-red-400 hover:bg-[var(--bg-surface-elevated)] transition-colors"
                 title="Log out"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -382,7 +403,7 @@ export default function ChatInterface() {
           ) : (
             <button
               onClick={handleDemoSignIn}
-              className="text-xs px-2.5 py-1.5 rounded bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-medium transition-colors"
+              className="text-xs px-2.5 py-1.5 rounded bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium transition-colors shadow-sm"
             >
               Demo Sign-In
             </button>
@@ -406,16 +427,16 @@ export default function ChatInterface() {
       <section
         id="workspace"
         ref={workspaceRef}
-        className="border-t border-[#1e2430] bg-[#090b0e] py-16 px-4 sm:px-6 scroll-mt-14"
+        className="border-t border-[var(--border-subtle)] bg-[var(--bg-app)] py-16 px-4 sm:px-6 scroll-mt-14 transition-colors"
       >
         <div className="max-w-4xl w-full mx-auto flex flex-col">
           {/* Section Heading */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b border-[#1e2430] gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b border-[var(--border-subtle)] gap-4">
             <div>
-              <span className="text-xs font-mono uppercase tracking-wider text-blue-400">
+              <span className="text-xs font-mono uppercase tracking-wider text-blue-500">
                 Live Interactive System
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#f3f5f8] mt-1">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-main)] mt-1">
                 Multi-Agent Workspace
               </h2>
             </div>
@@ -439,8 +460,8 @@ export default function ChatInterface() {
                     onClick={() => setActiveAgent(agentKey)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                       isActive
-                        ? 'bg-[#1e293b] text-blue-400 border border-blue-500/40 shadow-sm'
-                        : 'text-[#9aa2b2] hover:bg-[#161b24] hover:text-[#f3f5f8]'
+                        ? 'bg-[var(--agent-assistant-bg)] text-blue-600 dark:text-blue-400 border border-blue-500/40 shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-main)]'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -484,15 +505,15 @@ export default function ChatInterface() {
                       <button
                         key={key}
                         onClick={() => setActiveCategory(isCatActive ? null : key)}
-                        className={`p-3 rounded-lg border text-left flex items-center justify-between transition-colors ${
+                        className={`p-3 rounded-lg border text-left flex items-center justify-between transition-colors shadow-sm ${
                           isCatActive
-                            ? 'bg-[#161b24] border-blue-500/50 text-[#f3f5f8]'
-                            : 'bg-[#10141a] border-[#1e2430] hover:border-[#2c3547] text-[#9aa2b2]'
+                            ? 'bg-[var(--bg-surface-elevated)] border-blue-500/50 text-[var(--text-main)]'
+                            : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--border-strong)] text-[var(--text-secondary)]'
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-blue-400" />
-                          <span className="text-xs font-medium text-[#f3f5f8]">{cat.label}</span>
+                          <Icon className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-medium text-[var(--text-main)]">{cat.label}</span>
                         </div>
                       </button>
                     );
@@ -507,7 +528,7 @@ export default function ChatInterface() {
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-3 rounded-lg bg-[#10141a] border border-[#1e2430] space-y-1">
+                      <div className="p-3 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1 shadow-sm">
                         {commandCategories[activeCategory as keyof typeof commandCategories].prompts.map(
                           (prompt, idx) => (
                             <button
@@ -519,10 +540,10 @@ export default function ChatInterface() {
                                 );
                                 handleSendMessage(prompt);
                               }}
-                              className="w-full text-left p-2 rounded text-xs text-[#cbd5e1] hover:text-white hover:bg-[#161b24] transition-colors flex items-center justify-between"
+                              className="w-full text-left p-2 rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface-elevated)] transition-colors flex items-center justify-between"
                             >
                               <span>&rarr; {prompt}</span>
-                              <span className="text-[11px] text-[#677184]">Run &rarr;</span>
+                              <span className="text-[11px] text-[var(--text-muted)]">Run &rarr;</span>
                             </button>
                           )
                         )}
@@ -554,7 +575,7 @@ export default function ChatInterface() {
           )}
 
           {/* Unified Input Box (21st.dev reference, no gradients, pure solid surfaces) */}
-          <div className="mt-4 rounded-xl bg-[#10141a] border border-[#1e2430] focus-within:border-blue-500/50 transition-colors shadow-sm overflow-hidden">
+          <div className="mt-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] focus-within:border-blue-500/50 transition-colors shadow-sm overflow-hidden">
             <div className="px-4 pt-3.5 pb-2">
               <input
                 ref={inputRef}
@@ -574,15 +595,15 @@ export default function ChatInterface() {
                     handleSendMessage();
                   }
                 }}
-                className="w-full bg-transparent text-sm text-[#f3f5f8] outline-none placeholder:text-[#677184]"
+                className="w-full bg-transparent text-sm text-[var(--text-main)] outline-none placeholder:text-[var(--text-muted)]"
               />
             </div>
 
             {/* Controls Row */}
-            <div className="px-3 pb-2.5 pt-1.5 border-t border-[#161b24] flex items-center justify-between text-xs">
+            <div className="px-3 pb-2.5 pt-1.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-1 rounded bg-[#161b24] text-blue-400 font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span className="px-2 py-1 rounded bg-[var(--bg-surface-elevated)] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1.5 border border-[var(--border-subtle)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                   <span className="capitalize">{activeAgent}</span>
                 </span>
 
@@ -591,8 +612,8 @@ export default function ChatInterface() {
                   onClick={() => setReasonEnabled(!reasonEnabled)}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium transition-colors ${
                     reasonEnabled
-                      ? 'bg-[#1e293b] text-blue-400 border border-blue-500/40'
-                      : 'text-[#677184] hover:text-[#9aa2b2] bg-[#161b24]'
+                      ? 'bg-[var(--agent-assistant-bg)] text-blue-600 dark:text-blue-400 border border-blue-500/40 shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]'
                   }`}
                   title="Toggle multi-agent reasoning trace visibility"
                 >
@@ -607,8 +628,8 @@ export default function ChatInterface() {
                   onClick={toggleVoiceInput}
                   className={`p-1.5 rounded-md transition-colors ${
                     isListening
-                      ? 'bg-red-500/20 text-red-400'
-                      : 'text-[#677184] hover:text-[#f3f5f8] hover:bg-[#161b24]'
+                      ? 'bg-red-500/20 text-red-500'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface-elevated)]'
                   }`}
                   title={isListening ? 'Listening...' : 'Voice Input'}
                 >
@@ -619,7 +640,7 @@ export default function ChatInterface() {
                   type="button"
                   disabled={!input.trim() || isLoading}
                   onClick={() => handleSendMessage()}
-                  className="w-7 h-7 rounded-lg bg-[#2563eb] disabled:bg-[#1e2430] text-white disabled:text-[#677184] flex items-center justify-center transition-colors shadow-sm"
+                  className="w-7 h-7 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--bg-subtle)] text-white disabled:text-[var(--text-muted)] flex items-center justify-center transition-colors shadow-sm"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
@@ -630,62 +651,62 @@ export default function ChatInterface() {
       </section>
 
       {/* Architecture & How It Works Section */}
-      <section id="architecture" className="py-20 px-4 sm:px-8 border-t border-[#1e2430] bg-[#0c0e13]">
+      <section id="architecture" className="py-20 px-4 sm:px-8 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] transition-colors">
         <div className="max-w-6xl mx-auto">
           <div className="max-w-2xl mb-12">
-            <span className="text-xs font-mono uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-mono uppercase tracking-wider text-blue-500">
               System Architecture
             </span>
-            <h2 className="text-3xl font-bold tracking-tight text-[#f3f5f8] mt-1.5 mb-3">
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--text-main)] mt-1.5 mb-3">
               How LifePilot executes without hallucinated actions
             </h2>
-            <p className="text-sm text-[#9aa2b2] leading-relaxed">
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
               Every request is routed through a deterministic triage pipeline, validated against strict schemas, and persisted locally.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="p-6 rounded-xl bg-[#10141a] border border-[#1e2430] flex flex-col justify-between">
+            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col justify-between shadow-sm">
               <div>
-                <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-4">
+                <div className="w-8 h-8 rounded-md bg-[var(--agent-assistant-bg)] text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
                   <Cpu className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-semibold text-[#f3f5f8] mb-2">Intent Classification</h3>
-                <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                <h3 className="text-base font-semibold text-[var(--text-main)] mb-2">Intent Classification</h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                   Natural language inquiries are parsed into structured entity slots. Dates, priorities, product models, and symptom severity flags are extracted deterministically.
                 </p>
               </div>
-              <div className="pt-4 mt-6 border-t border-[#1e2430] text-[11px] font-mono text-[#677184]">
+              <div className="pt-4 mt-6 border-t border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-muted)]">
                 Phase 01 · Parsing
               </div>
             </div>
 
-            <div className="p-6 rounded-xl bg-[#10141a] border border-[#1e2430] flex flex-col justify-between">
+            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col justify-between shadow-sm">
               <div>
-                <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-4">
+                <div className="w-8 h-8 rounded-md bg-[var(--agent-assistant-bg)] text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
                   <Database className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-semibold text-[#f3f5f8] mb-2">Synchronous SQLite Persistence</h3>
-                <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                <h3 className="text-base font-semibold text-[var(--text-main)] mb-2">Synchronous SQLite Persistence</h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                   Scheduled tasks and reminders are immediately written to local WAL-mode SQLite storage (`lifepilot.db`). No cloud lock-in; your schedule stays local.
                 </p>
               </div>
-              <div className="pt-4 mt-6 border-t border-[#1e2430] text-[11px] font-mono text-[#677184]">
+              <div className="pt-4 mt-6 border-t border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-muted)]">
                 Phase 02 · State
               </div>
             </div>
 
-            <div className="p-6 rounded-xl bg-[#10141a] border border-[#1e2430] flex flex-col justify-between">
+            <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col justify-between shadow-sm">
               <div>
-                <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-4">
+                <div className="w-8 h-8 rounded-md bg-[var(--agent-assistant-bg)] text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
                   <Mail className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-semibold text-[#f3f5f8] mb-2">Automated Cron Dispatch</h3>
-                <p className="text-xs text-[#9aa2b2] leading-relaxed">
+                <h3 className="text-base font-semibold text-[var(--text-main)] mb-2">Automated Cron Dispatch</h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                   A high-efficiency background node-cron worker polls due reminders every 60 seconds and dispatches verified SMTP reminder emails directly to your inbox.
                 </p>
               </div>
-              <div className="pt-4 mt-6 border-t border-[#1e2430] text-[11px] font-mono text-[#677184]">
+              <div className="pt-4 mt-6 border-t border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-muted)]">
                 Phase 03 · Execution
               </div>
             </div>
@@ -694,41 +715,41 @@ export default function ChatInterface() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 px-4 sm:px-8 border-t border-[#1e2430] bg-[#090b0e]">
+      <section id="faq" className="py-20 px-4 sm:px-8 border-t border-[var(--border-subtle)] bg-[var(--bg-app)] transition-colors">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <span className="text-xs font-mono uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-mono uppercase tracking-wider text-blue-500">
               Frequently Asked Questions
             </span>
-            <h2 className="text-3xl font-bold tracking-tight text-[#f3f5f8] mt-1.5">
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--text-main)] mt-1.5">
               Clear answers, zero fluff.
             </h2>
           </div>
 
           <div className="space-y-4">
-            <div className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430]">
-              <h3 className="text-sm font-semibold text-[#f3f5f8] mb-1.5">
+            <div className="p-5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <h3 className="text-sm font-semibold text-[var(--text-main)] mb-1.5">
                 Where are my tasks and reminders stored?
               </h3>
-              <p className="text-xs text-[#9aa2b2] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 All tasks are stored in your local SQLite database (`lifepilot.db`) in WAL mode. You have full ownership and direct access to your data.
               </p>
             </div>
 
-            <div className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430]">
-              <h3 className="text-sm font-semibold text-[#f3f5f8] mb-1.5">
+            <div className="p-5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <h3 className="text-sm font-semibold text-[var(--text-main)] mb-1.5">
                 How does email reminder dispatch work?
               </h3>
-              <p className="text-xs text-[#9aa2b2] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 LifePilot runs a background cron task every 60 seconds. When a reminder’s due timestamp arrives, the system triggers your configured Gmail or SMTP transporter and flags `reminder_sent = 1` in SQLite.
               </p>
             </div>
 
-            <div className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430]">
-              <h3 className="text-sm font-semibold text-[#f3f5f8] mb-1.5">
+            <div className="p-5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm">
+              <h3 className="text-sm font-semibold text-[var(--text-main)] mb-1.5">
                 Does the symptom analyzer provide medical diagnosis?
               </h3>
-              <p className="text-xs text-[#9aa2b2] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 No. The symptom analyzer is an educational triage protocol designed to provide structured context, self-care suggestions, and red-flag escalation guidance. It never replaces professional medical consultation.
               </p>
             </div>
@@ -737,30 +758,30 @@ export default function ChatInterface() {
       </section>
 
       {/* Footer per taste-skill */}
-      <footer className="border-t border-[#1e2430] bg-[#090b0e] py-12 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#677184]">
-          <div className="flex items-center gap-2 text-[#9aa2b2]">
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-app)] py-12 px-4 sm:px-8 transition-colors">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[var(--text-muted)]">
+          <div className="flex items-center gap-2 text-[var(--text-secondary)]">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="font-semibold text-[#f3f5f8]">LifePilot AI</span>
+            <span className="font-semibold text-[var(--text-main)]">LifePilot AI</span>
             <span>· Autonomous Multi-Agent Intelligence</span>
           </div>
 
           <div className="flex items-center gap-6">
-            <a href="#overview" className="hover:text-[#f3f5f8] transition-colors">
+            <a href="#overview" className="hover:text-[var(--text-main)] transition-colors">
               Overview
             </a>
-            <a href="#workspace" className="hover:text-[#f3f5f8] transition-colors">
+            <a href="#workspace" className="hover:text-[var(--text-main)] transition-colors">
               Assistant
             </a>
-            <a href="#architecture" className="hover:text-[#f3f5f8] transition-colors">
+            <a href="#architecture" className="hover:text-[var(--text-main)] transition-colors">
               Architecture
             </a>
-            <a href="#faq" className="hover:text-[#f3f5f8] transition-colors">
+            <a href="#faq" className="hover:text-[var(--text-main)] transition-colors">
               FAQ
             </a>
           </div>
 
-          <div className="text-[11px] font-mono text-[#677184]">
+          <div className="text-[11px] font-mono text-[var(--text-muted)]">
             SQLite WAL · Node.js 26 · Framer Motion
           </div>
         </div>

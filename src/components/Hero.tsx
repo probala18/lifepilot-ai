@@ -40,10 +40,10 @@ export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
         animate="visible"
         className="flex flex-col items-center text-center"
       >
-        {/* Status indicator - solid and subtle */}
+        {/* Status indicator */}
         <motion.div
           variants={itemVariants}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161b24] border border-[#232836] text-xs text-[#9aa2b2] mb-6"
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] mb-6 transition-colors"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
           <span>Local SQLite & Cron Engine Active</span>
@@ -52,7 +52,7 @@ export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
         {/* 2-line confident headline per taste-skill */}
         <motion.h1
           variants={itemVariants}
-          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[#f3f5f8] max-w-3xl leading-[1.1] mb-5"
+          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[var(--text-main)] max-w-3xl leading-[1.1] mb-5 transition-colors"
         >
           Autonomous personal intelligence, grounded in real tasks.
         </motion.h1>
@@ -60,7 +60,7 @@ export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
         {/* Supporting statement */}
         <motion.p
           variants={itemVariants}
-          className="text-base sm:text-lg text-[#9aa2b2] max-w-2xl leading-relaxed mb-8"
+          className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl leading-relaxed mb-8 transition-colors"
         >
           LifePilot coordinates scheduling with automated email reminders, cross-examines purchase decisions, and provides structured health symptom triage in one unified interface.
         </motion.p>
@@ -69,32 +69,32 @@ export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
         <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-3 mb-14">
           <button
             onClick={onStartClick}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-medium text-sm transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium text-sm transition-all shadow-sm"
           >
             <span>Launch Assistant</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </motion.div>
 
-        {/* Tri-Agent Architecture Showcase - Pure Flat Surfaces */}
+        {/* Tri-Agent Architecture Showcase */}
         <motion.div
           variants={itemVariants}
           className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 text-left"
         >
           <div
             onClick={() => onSelectAgent?.('assistant')}
-            className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430] hover:border-[#2c3547] hover:bg-[#141922] transition-colors cursor-pointer flex flex-col justify-between"
+            className="p-5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer flex flex-col justify-between shadow-sm"
           >
             <div>
-              <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-3">
+              <div className="w-8 h-8 rounded-md bg-[var(--agent-assistant-bg)] text-[var(--agent-assistant-text)] flex items-center justify-center mb-3">
                 <Calendar className="w-4 h-4" />
               </div>
-              <h3 className="text-base font-semibold text-[#f3f5f8] mb-1">Personal Assistant</h3>
-              <p className="text-xs text-[#9aa2b2] leading-relaxed mb-3">
+              <h3 className="text-base font-semibold text-[var(--text-main)] mb-1">Personal Assistant</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-3">
                 Natural language task extraction, automatic SQLite database persistence, and scheduled email dispatch.
               </p>
             </div>
-            <div className="text-[11px] text-blue-400 font-medium flex items-center gap-1 mt-2">
+            <div className="text-[11px] text-[var(--agent-assistant-text)] font-medium flex items-center gap-1 mt-2">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Full SQLite persistence & cron reminders</span>
             </div>
@@ -102,18 +102,18 @@ export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
 
           <div
             onClick={() => onSelectAgent?.('shopping')}
-            className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430] hover:border-[#2c3547] hover:bg-[#141922] transition-colors cursor-pointer flex flex-col justify-between"
+            className="p-5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer flex flex-col justify-between shadow-sm"
           >
             <div>
-              <div className="w-8 h-8 rounded-md bg-[#292524] text-amber-400 flex items-center justify-center mb-3">
+              <div className="w-8 h-8 rounded-md bg-[var(--agent-shopping-bg)] text-[var(--agent-shopping-text)] flex items-center justify-center mb-3">
                 <ShoppingBag className="w-4 h-4" />
               </div>
-              <h3 className="text-base font-semibold text-[#f3f5f8] mb-1">Shopping Decision Engine</h3>
-              <p className="text-xs text-[#9aa2b2] leading-relaxed mb-3">
+              <h3 className="text-base font-semibold text-[var(--text-main)] mb-1">Shopping Decision Engine</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-3">
                 Rigorous value analysis, specification comparison, and proactive alternative recommendations.
               </p>
             </div>
-            <div className="text-[11px] text-amber-400 font-medium flex items-center gap-1 mt-2">
+            <div className="text-[11px] text-[var(--agent-shopping-text)] font-medium flex items-center gap-1 mt-2">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Unbiased trade-off analysis</span>
             </div>
@@ -121,18 +121,18 @@ export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
 
           <div
             onClick={() => onSelectAgent?.('health')}
-            className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430] hover:border-[#2c3547] hover:bg-[#141922] transition-colors cursor-pointer flex flex-col justify-between"
+            className="p-5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer flex flex-col justify-between shadow-sm"
           >
             <div>
-              <div className="w-8 h-8 rounded-md bg-[#14291f] text-emerald-400 flex items-center justify-center mb-3">
+              <div className="w-8 h-8 rounded-md bg-[var(--agent-health-bg)] text-[var(--agent-health-text)] flex items-center justify-center mb-3">
                 <HeartPulse className="w-4 h-4" />
               </div>
-              <h3 className="text-base font-semibold text-[#f3f5f8] mb-1">Symptom Analyzer</h3>
-              <p className="text-xs text-[#9aa2b2] leading-relaxed mb-3">
+              <h3 className="text-base font-semibold text-[var(--text-main)] mb-1">Symptom Analyzer</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-3">
                 Clinical symptom intake, red-flag escalation guidance, and self-care recommendations with medical disclaimers.
               </p>
             </div>
-            <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1 mt-2">
+            <div className="text-[11px] text-[var(--agent-health-text)] font-medium flex items-center gap-1 mt-2">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Triage protocols & emergency flags</span>
             </div>
