@@ -4,7 +4,7 @@ interface OpenRouterResponse {
 }
 
 const DEFAULT_FREE_MODEL =
-  process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
+  process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
 
 /**
  * Generate response using OpenRouter free models (Gemini 2.0 Flash Free, Llama 3.3 70B Free, etc.)
