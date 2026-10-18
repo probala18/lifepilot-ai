@@ -5,7 +5,6 @@ import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
 import apiRoutes from './server/routes/api.js';
 import authRoutes from './server/routes/auth.js';
-import { requireAuth } from './server/middleware/requireAuth.js';
 import { initDatabase } from './server/db/database.js';
 import { startReminderCron } from './server/cron/reminderCron.js';
 
@@ -21,11 +20,21 @@ async function startServer() {
   app.use(express.json());
   app.use(cookieParser());
 
-  // Auth routes are public – no session required
+  // Attach default local user so tasks and assistant requests work without login
+  app.use((req: any, _res, next) => {
+    req.user = {
+      sub: 'local_user',
+      email: 'user@lifepilot.local',
+      name: 'LifePilot User',
+    };
+    next();
+  });
+
+  // Auth routes (optional, backwards compatibility)
   app.use('/api/auth', authRoutes);
 
-  // All other AI routes require a valid session
-  app.use('/api', requireAuth, apiRoutes);
+  // All AI and task routes completely open
+  app.use('/api', apiRoutes);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
