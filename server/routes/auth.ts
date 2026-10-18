@@ -53,17 +53,22 @@ router.post('/google', async (req, res) => {
   }
 });
 
-// GET /api/auth/me  – return current user from session cookie
+// GET /api/auth/me  – return current user (or default user if no session)
 router.get('/me', (req: any, res) => {
+  const defaultUser = {
+    sub: 'local_user',
+    email: 'user@lifepilot.local',
+    name: 'LifePilot User',
+    picture: '',
+  };
   const token = req.cookies?.[SESSION_COOKIE];
-  if (!token) return res.status(401).json({ user: null });
+  if (!token) return res.json({ user: defaultUser });
   try {
     const decoded = jwt.verify(token, getSessionSecret()) as jwt.JwtPayload;
     const { sub, email, name, picture } = decoded;
-    res.json({ user: { sub, email, name, picture } });
+    res.json({ user: { sub: sub || defaultUser.sub, email: email || defaultUser.email, name: name || defaultUser.name, picture: picture || '' } });
   } catch {
-    res.clearCookie(SESSION_COOKIE);
-    res.status(401).json({ user: null });
+    res.json({ user: defaultUser });
   }
 });
 

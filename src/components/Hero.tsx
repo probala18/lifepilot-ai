@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Calendar, ShoppingBag, HeartPulse, CheckCircle2 } from 'lucide-react';
 
 interface HeroProps {
-  user: any;
+  user?: any;
   onStartClick: () => void;
   onSelectAgent?: (agent: 'assistant' | 'shopping' | 'health') => void;
 }
 
-export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
+export default function Hero({ onStartClick, onSelectAgent }: HeroProps) {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {

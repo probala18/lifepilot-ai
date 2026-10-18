@@ -45,20 +45,12 @@ interface Message {
   timestamp?: string;
 }
 
-interface AuthUser {
-  sub: string;
-  email: string;
-  name: string;
-  picture: string;
-}
-
 export default function ChatInterface() {
   const [activeAgent, setActiveAgent] = useState<AgentType>('assistant');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [reasonEnabled, setReasonEnabled] = useState<boolean>(true);
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('lifepilot-theme') as 'dark' | 'light' | null;
@@ -79,24 +71,7 @@ export default function ChatInterface() {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Check auth status on load
-  const checkAuth = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.user) {
-          setUser(data.user);
-          refreshTaskCount();
-          return;
-        }
-      }
-    } catch {
-      // Ignore
-    }
-  }, []);
-
-  const refreshTaskCount = async () => {
+  const refreshTaskCount = useCallback(async () => {
     try {
       const res = await fetch('/api/tasks');
       if (res.ok) {
@@ -108,11 +83,11 @@ export default function ChatInterface() {
     } catch {
       // Ignore
     }
-  };
+  }, []);
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    refreshTaskCount();
+  }, [refreshTaskCount]);
 
   // Apply theme to document element and localStorage
   useEffect(() => {

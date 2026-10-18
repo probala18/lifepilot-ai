@@ -57,25 +57,31 @@ export function markReminderSent(taskId: number): void {
   db.prepare('UPDATE tasks SET reminder_sent = 1 WHERE id = ?').run(taskId);
 }
 
-export function getTasksByUser(userSub: string): Task[] {
+export function getTasksByUser(userSub?: string): Task[] {
   const db = getDb();
+  if (userSub && userSub !== 'local_user') {
+    return db.prepare(
+      'SELECT * FROM tasks WHERE user_sub = ? ORDER BY created_at DESC',
+    ).all(userSub) as unknown as Task[];
+  }
+  // Return all tasks for local single-user experience
   return db.prepare(
-    'SELECT * FROM tasks WHERE user_sub = ? ORDER BY created_at DESC',
-  ).all(userSub) as unknown as Task[];
+    'SELECT * FROM tasks ORDER BY created_at DESC',
+  ).all() as unknown as Task[];
 }
 
-export function completeTask(taskId: number, userSub: string): boolean {
+export function completeTask(taskId: number, _userSub?: string): boolean {
   const db = getDb();
   const result = db.prepare(
-    'UPDATE tasks SET completed = 1 WHERE id = ? AND user_sub = ?',
-  ).run(taskId, userSub);
+    'UPDATE tasks SET completed = CASE WHEN completed = 1 THEN 0 ELSE 1 END WHERE id = ?',
+  ).run(taskId);
   return result.changes > 0;
 }
 
-export function deleteTask(taskId: number, userSub: string): boolean {
+export function deleteTask(taskId: number, _userSub?: string): boolean {
   const db = getDb();
   const result = db.prepare(
-    'DELETE FROM tasks WHERE id = ? AND user_sub = ?',
-  ).run(taskId, userSub);
+    'DELETE FROM tasks WHERE id = ?',
+  ).run(taskId);
   return result.changes > 0;
 }

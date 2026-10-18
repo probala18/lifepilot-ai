@@ -97,9 +97,9 @@ router.post('/health', async (req, res) => {
 
 // ─── Task management endpoints ───────────────────────────────────────────────
 
-router.get('/tasks', (req: any, res) => {
+router.get('/tasks', (_req: any, res) => {
   try {
-    const tasks = getTasksByUser(req.user.sub);
+    const tasks = getTasksByUser();
     res.json({ success: true, tasks });
   } catch (error) {
     console.error('Tasks Error:', error);
@@ -113,7 +113,7 @@ router.patch('/tasks/:id/complete', (req: any, res) => {
     return res.status(400).json({ success: false, error: 'Invalid task ID' });
   }
   try {
-    const updated = completeTask(taskId, req.user.sub);
+    const updated = completeTask(taskId);
     if (!updated) return res.status(404).json({ success: false, error: 'Task not found' });
     res.json({ success: true });
   } catch (error) {
@@ -128,7 +128,7 @@ router.delete('/tasks/:id', (req: any, res) => {
     return res.status(400).json({ success: false, error: 'Invalid task ID' });
   }
   try {
-    const deleted = deleteTask(taskId, req.user.sub);
+    const deleted = deleteTask(taskId);
     if (!deleted) return res.status(404).json({ success: false, error: 'Task not found' });
     res.json({ success: true });
   } catch (error) {

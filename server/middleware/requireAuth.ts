@@ -7,17 +7,24 @@ function getSessionSecret(): string {
   return process.env.SESSION_SECRET || 'dev-only-secret-not-for-production';
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export const DEFAULT_USER = {
+  sub: 'local_user',
+  email: 'user@lifepilot.local',
+  name: 'LifePilot User',
+  picture: '',
+};
+
+export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   const token = (req as any).cookies?.[SESSION_COOKIE];
-  if (!token) {
-    res.status(401).json({ error: 'Authentication required. Please sign in.' });
-    return;
+  if (token) {
+    try {
+      const user = jwt.verify(token, getSessionSecret());
+      (req as any).user = user;
+      return next();
+    } catch {
+      // Fallback to default user
+    }
   }
-  try {
-    const user = jwt.verify(token, getSessionSecret());
-    (req as any).user = user;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Session expired. Please sign in again.' });
-  }
+  (req as any).user = DEFAULT_USER;
+  next();
 }
