@@ -1,262 +1,144 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Shield, Clock, Globe } from 'lucide-react';
+import { ArrowRight, Calendar, ShoppingBag, HeartPulse, CheckCircle2 } from 'lucide-react';
 
 interface HeroProps {
   user: any;
   onStartClick: () => void;
+  onSelectAgent?: (agent: 'assistant' | 'shopping' | 'health') => void;
 }
 
-export default function Hero({ user, onStartClick }: HeroProps) {
+export default function Hero({ user, onStartClick, onSelectAgent }: HeroProps) {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
+        staggerChildren: 0.08,
+        delayChildren: 0.1,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 14 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.8,
-        ease: 'easeOut',
+        duration: 0.45,
+        ease: [0.21, 0.47, 0.32, 0.98],
       },
     },
   };
 
   return (
-    <section className="relative min-h-[90vh] flex items-center px-4 sm:px-6 pt-20 pb-24">
-      {/* Animated background grid */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(0deg, transparent 24%, rgba(14, 165, 233, 0.05) 25%, rgba(14, 165, 233, 0.05) 26%, transparent 27%, transparent 74%, rgba(14, 165, 233, 0.05) 75%, rgba(14, 165, 233, 0.05) 76%, transparent 77%, transparent),
-              linear-gradient(90deg, transparent 24%, rgba(99, 102, 241, 0.05) 25%, rgba(99, 102, 241, 0.05) 26%, transparent 27%, transparent 74%, rgba(99, 102, 241, 0.05) 75%, rgba(99, 102, 241, 0.05) 76%, transparent 77%, transparent)
-            `,
-            backgroundSize: '50px 50px',
-          }}
-          animate={{
-            backgroundPosition: ['0 0', '50px 50px'],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-        />
-      </div>
-
-      {/* Floating glowing orbs */}
+    <section className="relative px-4 sm:px-8 pt-12 pb-16 max-w-6xl mx-auto">
       <motion.div
-        className="absolute top-20 left-10 w-64 h-64 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(14, 165, 233, 0.2) 0%, transparent 70%)',
-          filter: 'blur(40px)',
-        }}
-        animate={{
-          y: [0, 30, 0],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
-      <motion.div
-        className="absolute bottom-32 right-20 w-80 h-80 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
-          filter: 'blur(50px)',
-        }}
-        animate={{
-          y: [0, -40, 0],
-          opacity: [0.2, 0.5, 0.2],
-        }}
-        transition={{
-          duration: 12,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
-
-      <div className="max-w-6xl mx-auto w-full relative z-10">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid lg:grid-cols-[1.2fr,0.8fr] gap-12 items-center"
-        >
-          {/* Left Content */}
-          <div>
-            <motion.div
-              variants={itemVariants}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 border border-cyan-500/20 w-fit"
-            >
-              <span className="w-2 h-2 rounded-full bg-gradient-to-r from-sky-400 to-cyan-400 animate-pulse" />
-              <span className="text-sm font-semibold bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
-                AI Operating System
-              </span>
-            </motion.div>
-
-            <motion.h1
-              variants={itemVariants}
-              className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6"
-            >
-              NovaFlow
-              <br />
-              <span className="bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
-                Your AI Productivity Operating System
-              </span>
-            </motion.h1>
-
-            <motion.p
-              variants={itemVariants}
-              className="text-lg text-slate-300 max-w-2xl leading-relaxed mb-8"
-            >
-              NovaFlow transforms natural language and voice commands into intelligent automated
-              workflows using collaborative AI agents powered by Amazon Nova.
-            </motion.p>
-
-            <motion.div
-              variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-4 mb-12"
-            >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onStartClick}
-                className="px-8 py-4 rounded-xl font-semibold text-white border border-slate-700 hover:border-cyan-500/50 hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-              >
-                Try AI Assistant
-                <ArrowRight className="w-4 h-4" />
-              </motion.button>
-            </motion.div>
-
-            <motion.div
-              variants={itemVariants}
-              className="flex flex-wrap gap-3"
-            >
-              {['Email Management', 'Smart Scheduling', 'Decision Support', 'Health Insights'].map(
-                (tag) => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold glass border border-slate-700/50 text-slate-300"
-                  >
-                    {tag}
-                  </span>
-                )
-              )}
-            </motion.div>
-          </div>
-
-          {/* Right - Visual Summary */}
-          <motion.div
-            variants={itemVariants}
-            className="relative"
-          >
-            {/* Card with glassmorphism */}
-            <div className="rounded-2xl glass border border-cyan-500/10 p-8 overflow-hidden group hover:border-cyan-500/30 transition-all">
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-sky-600/5 via-transparent to-cyan-600/5"
-                animate={{
-                  opacity: [0.5, 0.8, 0.5],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                }}
-              />
-
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-slate-500">Live Status</p>
-                    <p className="text-2xl font-bold text-white mt-1">System Active</p>
-                  </div>
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="w-4 h-4 rounded-full bg-gradient-to-r from-green-400 to-cyan-400"
-                  />
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  {[
-                    { agent: 'Email Agent', status: 'Processing inbox', color: 'from-cyan-500' },
-                    { agent: 'Calendar Agent', status: 'Optimizing schedule', color: 'from-sky-500' },
-                    { agent: 'Decision Agent', status: 'Analyzing options', color: 'from-indigo-500' },
-                  ].map((item) => (
-                    <div key={item.agent} className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${item.color}`} />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-white">{item.agent}</p>
-                        <p className="text-xs text-slate-400">{item.status}</p>
-                      </div>
-                      <motion.div
-                        animate={{ opacity: [0.4, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="text-xs text-slate-500"
-                      >
-                        ●
-                      </motion.div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t border-slate-700/50 pt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Response Time</span>
-                    <span className="text-cyan-400 font-semibold">~1.2s</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Agents Online</span>
-                    <span className="text-green-400 font-semibold">3/3</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Uptime</span>
-                    <span className="text-accent-cyan font-semibold">99.9%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Stats Footer */}
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col items-center text-center"
+      >
+        {/* Status indicator - solid and subtle */}
         <motion.div
           variants={itemVariants}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16"
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161b24] border border-[#232836] text-xs text-[#9aa2b2] mb-6"
         >
-          {[
-            { icon: Zap, label: 'Instant Responses', value: 'Sub-2s latency' },
-            { icon: Shield, label: 'Privacy First', value: 'End-to-end encrypted' },
-            { icon: Clock, label: '24/7 Active', value: 'Always learning' },
-          ].map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                whileHover={{ y: -4 }}
-                className="rounded-xl glass border border-slate-700/50 p-4 text-center group hover:border-cyan-500/30 transition-all"
-              >
-                <Icon className="w-6 h-6 text-cyan-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                <p className="text-sm font-semibold text-white">{stat.label}</p>
-                <p className="text-xs text-slate-400 mt-1">{stat.value}</p>
-              </motion.div>
-            );
-          })}
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span>Local SQLite & Cron Engine Active</span>
         </motion.div>
-      </div>
+
+        {/* 2-line confident headline per taste-skill */}
+        <motion.h1
+          variants={itemVariants}
+          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[#f3f5f8] max-w-3xl leading-[1.1] mb-5"
+        >
+          Autonomous personal intelligence, grounded in real tasks.
+        </motion.h1>
+
+        {/* Supporting statement */}
+        <motion.p
+          variants={itemVariants}
+          className="text-base sm:text-lg text-[#9aa2b2] max-w-2xl leading-relaxed mb-8"
+        >
+          LifePilot coordinates scheduling with automated email reminders, cross-examines purchase decisions, and provides structured health symptom triage in one unified interface.
+        </motion.p>
+
+        {/* Action Button */}
+        <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-3 mb-14">
+          <button
+            onClick={onStartClick}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-medium text-sm transition-all shadow-sm"
+          >
+            <span>Launch Assistant</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </motion.div>
+
+        {/* Tri-Agent Architecture Showcase - Pure Flat Surfaces */}
+        <motion.div
+          variants={itemVariants}
+          className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 text-left"
+        >
+          <div
+            onClick={() => onSelectAgent?.('assistant')}
+            className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430] hover:border-[#2c3547] hover:bg-[#141922] transition-colors cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-8 h-8 rounded-md bg-[#1e293b] text-blue-400 flex items-center justify-center mb-3">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-semibold text-[#f3f5f8] mb-1">Personal Assistant</h3>
+              <p className="text-xs text-[#9aa2b2] leading-relaxed mb-3">
+                Natural language task extraction, automatic SQLite database persistence, and scheduled email dispatch.
+              </p>
+            </div>
+            <div className="text-[11px] text-blue-400 font-medium flex items-center gap-1 mt-2">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Full SQLite persistence & cron reminders</span>
+            </div>
+          </div>
+
+          <div
+            onClick={() => onSelectAgent?.('shopping')}
+            className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430] hover:border-[#2c3547] hover:bg-[#141922] transition-colors cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-8 h-8 rounded-md bg-[#292524] text-amber-400 flex items-center justify-center mb-3">
+                <ShoppingBag className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-semibold text-[#f3f5f8] mb-1">Shopping Decision Engine</h3>
+              <p className="text-xs text-[#9aa2b2] leading-relaxed mb-3">
+                Rigorous value analysis, specification comparison, and proactive alternative recommendations.
+              </p>
+            </div>
+            <div className="text-[11px] text-amber-400 font-medium flex items-center gap-1 mt-2">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Unbiased trade-off analysis</span>
+            </div>
+          </div>
+
+          <div
+            onClick={() => onSelectAgent?.('health')}
+            className="p-5 rounded-xl bg-[#10141a] border border-[#1e2430] hover:border-[#2c3547] hover:bg-[#141922] transition-colors cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-8 h-8 rounded-md bg-[#14291f] text-emerald-400 flex items-center justify-center mb-3">
+                <HeartPulse className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-semibold text-[#f3f5f8] mb-1">Symptom Analyzer</h3>
+              <p className="text-xs text-[#9aa2b2] leading-relaxed mb-3">
+                Clinical symptom intake, red-flag escalation guidance, and self-care recommendations with medical disclaimers.
+              </p>
+            </div>
+            <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1 mt-2">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Triage protocols & emergency flags</span>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
