@@ -16,8 +16,6 @@ import {
   Plus,
   BookOpen,
   Sparkles,
-  User,
-  LogOut,
   ListTodo,
   Layers,
   ShieldCheck,
@@ -153,27 +151,6 @@ export default function ChatInterface() {
     }
   };
 
-  const handleDemoSignIn = async () => {
-    try {
-      const res = await fetch('/api/auth/demo', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.user) {
-          setUser(data.user);
-          refreshTaskCount();
-        }
-      }
-    } catch (e) {
-      console.error('Demo sign-in failed', e);
-    }
-  };
-
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-    setUser(null);
-    setTaskCount(0);
-  };
-
   const scrollToWorkspace = () => {
     workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setTimeout(() => {
@@ -184,10 +161,6 @@ export default function ChatInterface() {
   const handleSendMessage = async (textToSend?: string) => {
     const content = (textToSend || input).trim();
     if (!content || isLoading) return;
-
-    if (!user) {
-      await handleDemoSignIn();
-    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -362,34 +335,12 @@ export default function ChatInterface() {
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-600" />}
           </button>
-
-          {/* User Auth indicator */}
-          {user ? (
-            <div className="flex items-center gap-2 pl-2 border-l border-[var(--border-subtle)]">
-              <span className="text-xs text-[var(--text-secondary)] hidden sm:inline">{user.name || user.email}</span>
-              <button
-                onClick={handleLogout}
-                className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-red-400 hover:bg-[var(--bg-surface-elevated)] transition-colors"
-                title="Log out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleDemoSignIn}
-              className="text-xs px-2.5 py-1.5 rounded bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium transition-colors shadow-sm"
-            >
-              Demo Sign-In
-            </button>
-          )}
         </div>
       </header>
 
       {/* Hero Section (Landing Page) */}
       <div id="overview">
         <Hero
-          user={user}
           onStartClick={scrollToWorkspace}
           onSelectAgent={(agent) => {
             setActiveAgent(agent);
