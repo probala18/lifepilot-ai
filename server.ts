@@ -10,7 +10,7 @@ import { startReminderCron } from './server/cron/reminderCron.js';
 
 async function startServer() {
   const app = express();
-  const preferredPort = Number(process.env.PORT || 3005);
+  const preferredPort = Number(process.env.PORT || 3000);
   const host = '0.0.0.0';
 
   // Initialize SQLite database (creates tables if needed)
