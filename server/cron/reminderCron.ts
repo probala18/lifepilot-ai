@@ -15,6 +15,13 @@ export async function checkAndDispatchDueReminders(): Promise<{ checked: number;
 
     for (const task of dueTasks) {
       try {
+        if (!task.user_email || task.user_email.endsWith('.local') || task.user_email.includes('@lifepilot.local')) {
+          console.log(`[reminder-cron] Local dev recipient detected (${task.user_email}). Simulated dispatch for task #${task.id}: "${task.task}"`);
+          markReminderSent(task.id);
+          sent++;
+          continue;
+        }
+
         await sendReminderEmail(
           task.user_email,
           task.task,
@@ -24,8 +31,10 @@ export async function checkAndDispatchDueReminders(): Promise<{ checked: number;
         markReminderSent(task.id);
         sent++;
         console.log(`[reminder-cron] Reminder sent for task #${task.id}: "${task.task}" to ${task.user_email}`);
-      } catch (err) {
-        console.error(`[reminder-cron] Failed to send reminder for task #${task.id}:`, err);
+      } catch (err: any) {
+        console.error(`[reminder-cron] Failed to send reminder for task #${task.id} to ${task.user_email}:`, err?.message || err);
+        // Flag reminder as sent to prevent continuous error spam every minute
+        markReminderSent(task.id);
       }
     }
 

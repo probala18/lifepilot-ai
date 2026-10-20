@@ -24,7 +24,7 @@ async function startServer() {
   app.use((req: any, _res, next) => {
     req.user = {
       sub: 'local_user',
-      email: 'user@lifepilot.local',
+      email: process.env.GMAIL_USER || 'user@lifepilot.local',
       name: 'LifePilot User',
     };
     next();
@@ -55,8 +55,12 @@ async function startServer() {
     });
 
     server.on('error', (err: any) => {
-      if (err?.code === 'EADDRINUSE') {
-        console.warn(`[server] Port ${port} is busy. Retrying on ${port + 1}...`);
+      try {
+        server.close();
+      } catch {}
+
+      if (err?.code === 'EADDRINUSE' || err?.code === 'EACCES') {
+        console.warn(`[server] Port ${port} is busy or restricted (${err?.code}). Retrying on ${port + 1}...`);
         listenWithFallback(port + 1);
         return;
       }

@@ -20,8 +20,18 @@ Return ONLY valid JSON matching this exact schema — no markdown, no extra text
 export async function handleShoppingRequest(userInput: string) {
   const { response, reasoning } = await generateNovaResponse(SYSTEM_PROMPT, userInput);
 
+  let data: any;
   const cleaned = response.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
-  const data = JSON.parse(cleaned);
+  try {
+    data = JSON.parse(cleaned);
+  } catch {
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      data = JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error(`Invalid JSON returned from model: ${response.slice(0, 100)}`);
+    }
+  }
 
   return { data, reasoning };
 }

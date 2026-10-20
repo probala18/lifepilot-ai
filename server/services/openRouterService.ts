@@ -4,7 +4,7 @@ interface OpenRouterResponse {
 }
 
 const DEFAULT_FREE_MODEL =
-  process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
+  process.env.OPENROUTER_MODEL || 'minimax/minimax-m3.1-flash:free';
 
 /**
  * Generate response using OpenRouter free models (Gemini 2.0 Flash Free, Llama 3.3 70B Free, etc.)
@@ -42,6 +42,7 @@ export async function generateOpenRouterResponse(
       'X-Title': 'LifePilot AI',
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!response.ok) {

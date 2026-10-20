@@ -22,9 +22,19 @@ export async function handleAssistantRequest(
   const prompt = SYSTEM_PROMPT.replace('{{CURRENT_DATETIME}}', new Date().toISOString());
   const { response, reasoning } = await generateNovaResponse(prompt, userInput);
 
-  // Strip markdown fences if the model wraps the JSON
+  // Parse JSON safely even if model wraps in markdown or extra text
+  let data: any;
   const cleaned = response.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
-  const data = JSON.parse(cleaned);
+  try {
+    data = JSON.parse(cleaned);
+  } catch {
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      data = JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error(`Invalid JSON returned from model: ${response.slice(0, 100)}`);
+    }
+  }
 
   // Persist the task to SQLite so the cron job can send reminders
   const saved = createTask(

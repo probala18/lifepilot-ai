@@ -25,8 +25,8 @@ export async function generateNovaResponse(
       return await generateOpenRouterResponse(systemPrompt, userMessage, {
         model: options?.model || process.env.OPENROUTER_MODEL,
       });
-    } catch (openRouterErr) {
-      console.warn('[LLM] OpenRouter attempt failed:', openRouterErr);
+    } catch (openRouterErr: any) {
+      console.warn(`[LLM] OpenRouter attempt failed: ${openRouterErr?.message || openRouterErr}`);
     }
   }
 
@@ -56,8 +56,8 @@ export async function generateNovaResponse(
       if (responseText) {
         return { response: responseText, reasoning: reasoningText || 'Bedrock execution completed' };
       }
-    } catch (bedrockErr) {
-      console.warn('[LLM] Bedrock attempt failed:', bedrockErr);
+    } catch (bedrockErr: any) {
+      console.warn(`[LLM] Bedrock attempt failed: ${bedrockErr?.message || bedrockErr?.name || bedrockErr}`);
     }
   }
 
